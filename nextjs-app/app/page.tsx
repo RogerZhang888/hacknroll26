@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signIn, signOut } from "next-auth/react";
+import Image from "next/image";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -17,12 +18,15 @@ export default function Home() {
 
   return (
     <div>
+      <pre>{JSON.stringify(session, null, 2)}</pre>
       <p>Logged in as {session.user?.name}</p>
       <p>Email: {session.user?.email}</p>
-      <img
+      <Image
         src={session.user?.image ?? ""}
         alt="avatar"
         style={{ width: 64, borderRadius: "50%" }}
+        width={50}
+        height={50}
       />
       <button onClick={() => signOut()}>Log out</button>
     </div>
