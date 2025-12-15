@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "description": "Defines the legal syntax, concepts, and algorithms for each Source chapter."
+  },
+  "topics": [
+    { "id": "basics", "chapter": 1, "type": "syntax", "desc": "const, function, if-else, blocks, lambda" },
+    { "id": "orders_of_growth", "chapter": 1, "type": "concept", "desc": "Big-O, Omega, Theta notation" },
+    { "id": "recurrence_relations", "chapter": 1, "type": "concept", "desc": "Solving T(n) for time complexity analysis" },
+    { "id": "recursion_process", "chapter": 1, "type": "concept", "desc": "Recursive vs Iterative Process (Deferred Operations)" },
+    { "id": "substitution_model", "chapter": 1, "type": "concept", "desc": "Applicative Order, Lambda Evaluation" },
+    { "id": "math_library", "chapter": 1, "type": "library", "desc": "math_sqrt, math_PI, math_sin, etc." },
+    { "id": "primitive_predicates", "chapter": 1, "type": "library", "desc": "is_number, is_boolean, is_string, is_function" },
+    { "id": "misc_library", "chapter": 1, "type": "library", "desc": "get_time, parse_int, prompt, display, error" },
+
+    { "id": "pairs", "chapter": 2, "type": "structure", "desc": "pair, head, tail, is_pair, is_null" },
+    { "id": "lists", "chapter": 2, "type": "structure", "desc": "list(), null, Box Notation vs List Notation" },
+    { "id": "list_library", "chapter": 2, "type": "library", "desc": "map, filter, accumulate, append, reverse, member, remove, length, list_ref, build_list, enum_list" },
+    { "id": "trees", "chapter": 2, "type": "structure", "desc": "Binary Trees, BSTs, Tree Traversal" },
+    { "id": "sorting", "chapter": 2, "type": "algorithm", "desc": "Insertion, Selection, Merge, Quicksort" },
+    { "id": "strings", "chapter": 2, "type": "primitive", "desc": "Strings allowed as data" },
+
+    { "id": "state", "chapter": 3, "type": "concept", "desc": "Variable assignment (let, =)" },
+    { "id": "environment_model", "chapter": 3, "type": "concept", "desc": "Frames, Scoping, Shadowing, Hoisting (Scanning)" },
+    { "id": "loops", "chapter": 3, "type": "syntax", "desc": "while, for, break, continue, Loop Control Variables" },
+    { "id": "arrays", "chapter": 3, "type": "structure", "desc": "Literal arrays [], array assignment, array_length, is_array" },
+    { "id": "streams", "chapter": 3, "type": "structure", "desc": "stream(), stream_tail (lazy), stream_map, etc." },
+    { "id": "pair_mutation", "chapter": 3, "type": "primitive", "desc": "set_head, set_tail" },
+
+    { "id": "metacircular", "chapter": 4, "type": "concept", "desc": "The Evaluator, Parse Trees" },
+    { "id": "cse_machine", "chapter": 4, "type": "concept", "desc": "Control, Stash, Environment components" },
+    { "id": "continuation_passing", "chapter": 4, "type": "concept", "desc": "CPS transformation" },
+    { "id": "interpreter_library", "chapter": 4, "type": "library", "desc": "parse, tokenize, apply_in_underlying_javascript" }
+  ],
+  "constraints": [
+    { "feature": "lists", "forbidden_before": 2, "error": "List processing is not available until Source §2." },
+    { "feature": "state", "forbidden_before": 3, "error": "Variable assignment is not available until Source §3." },
+    { "feature": "loops", "forbidden_before": 3, "error": "Loops are not available until Source §3. Use recursion." },
+    { "feature": "arrays", "forbidden_before": 3, "error": "Arrays are not available until Source §3." },
+    { "feature": "streams", "forbidden_before": 3, "error": "Streams are not available until Source §3." },
+    { "feature": "parsing", "forbidden_before": 4, "error": "Parser functions are not available until Source §4." }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "description": "Rules for Time Complexity, Environment Model Accounting, Sorting, and Function Costs."
+  },
+  "recurrence_rules": [
+    { "pattern": "T(n) = T(n-c) + O(1)", "complexity": "O(n)", "note": "Linear recursion (Iterative process)" },
+    { "pattern": "T(n) = T(n/2) + O(n)", "complexity": "O(n)", "note": "Geometric series" },
+    { "pattern": "T(n) = 2T(n/2) + O(1)", "complexity": "O(n)", "note": "Tree traversal (e.g. counting nodes)" },
+    { "pattern": "T(n) = 2T(n/2) + O(n)", "complexity": "O(n log n)", "note": "Merge Sort pattern" },
+    { "pattern": "T(n) = T(n-c) + O(log n)", "complexity": "O(n log n)", "note": "Recursive step costs logarithmic time" },
+    { "pattern": "T(n) = T(n-c) + O(n)", "complexity": "O(n^2)", "note": "Selection/Insertion Sort pattern" },
+    { "pattern": "T(n) = 2T(n-c) + O(n)", "complexity": "O(2^n)", "note": "Exponential (Fibonacci/Hanoi)" }
+  ],
+  "sorting_algorithms": [
+    { "id": "insertion_sort", "time": "O(n^2)", "space": "O(n) or O(1)", "stable": "Yes" },
+    { "id": "selection_sort", "time": "O(n^2)", "space": "O(n) or O(1)", "stable": "No" },
+    { "id": "merge_sort", "time": "O(n log n)", "space": "O(n)", "stable": "Yes" },
+    { "id": "quicksort", "time": "O(n^2) worst case", "space": "O(log n)", "note": "Average O(n log n)" }
+  ],
+  "cse_machine_rules": [
+    { "component": "Control", "role": "Tracks deferred operands and operators (Instructions)" },
+    { "component": "Stash", "role": "Stores intermediate results/argument values" },
+    { "component": "Environment", "role": "Maps names to values (Frames)" }
+  ],
+  "rules": [
+    {
+      "category": "List Support",
+      "functions": [
+        { "id": "pair", "time": "O(1)", "space": "O(1)", "creates": "Pair", "count": 1 },
+        { "id": "is_pair", "time": "O(1)", "space": "O(1)", "creates": "None" },
+        { "id": "head", "time": "O(1)", "space": "O(1)", "creates": "None" },
+        { "id": "tail", "time": "O(1)", "space": "O(1)", "creates": "None" },
+        { "id": "is_null", "time": "O(1)", "space": "O(1)", "creates": "None" },
+        { "id": "is_list", "time": "O(n)", "space": "O(1)", "creates": "None", "note": "Iterative check" },
+        { "id": "list", "time": "O(n)", "space": "O(n)", "creates": "Pair", "count": "n", "note": "Creates n pairs" },
+        { "id": "draw_data", "time": "O(n)", "space": "O(n)", "creates": "None" },
+        { "id": "equal", "time": "O(n)", "space": "O(n)", "creates": "None", "note": "Structural recursion" },
+        { "id": "length", "time": "O(n)", "space": "O(1)", "creates": "None", "note": "Iterative process" },
+        { "id": "list_to_string", "time": "O(n)", "space": "O(n)", "creates": "String" },
+        { "id": "reverse", "time": "O(n)", "space": "O(n)", "creates": "Pair", "count": "n", "note": "Creates new list structure" },
+        { "id": "member", "time": "O(n)", "space": "O(1)", "creates": "None" },
+        { "id": "remove", "time": "O(n)", "space": "O(n)", "creates": "Pair", "count": "variable" },
+        { "id": "remove_all", "time": "O(n)", "space": "O(n)", "creates": "Pair", "count": "variable" },
+        { "id": "list_ref", "time": "O(n)", "space": "O(1)", "creates": "None" },
+        { "id": "build_list", "time": "O(n)", "space": "O(n)", "creates": "Pair", "count": "n" },
+        { "id": "for_each", "time": "O(n)", "space": "O(1)", "creates": "None" },
+        { "id": "enum_list", "time": "O(n)", "space": "O(n)", "creates": "Pair", "count": "end - start" },
+        
+        {
+          "id": "map",
+          "time": "O(n)",
+          "space": "O(n)",
+          "creates": "Pair",
+          "count": "n",
+          "trace_logic": "Recursive",
+          "snippet": "function map(f, xs) { return is_null(xs) ? xs : pair(f(head(xs)), map(f, tail(xs))); }",
+          "stack_depth": "O(n)"
+        },
+        {
+          "id": "filter",
+          "time": "O(n)",
+          "space": "O(n)",
+          "creates": "Pair",
+          "count": "variable",
+          "trace_logic": "Recursive",
+          "snippet": "function filter(pred, xs) { return is_null(xs) ? null : pred(head(xs)) ? pair(head(xs), filter(pred, tail(xs))) : filter(pred, tail(xs)); }",
+          "stack_depth": "O(n)"
+        },
+        {
+          "id": "accumulate",
+          "time": "O(n)",
+          "space": "O(n)",
+          "creates": "Frame",
+          "count": "n",
+          "trace_logic": "Recursive",
+          "snippet": "function accumulate(f, initial, xs) { return is_null(xs) ? initial : f(head(xs), accumulate(f, initial, tail(xs))); }",
+          "stack_depth": "O(n)"
+        },
+        {
+          "id": "append",
+          "time": "O(n)",
+          "space": "O(n)",
+          "creates": "Pair",
+          "count": "length(xs)",
+          "trace_logic": "Recursive",
+          "snippet": "function append(xs, ys) { return is_null(xs) ? ys : pair(head(xs), append(tail(xs), ys)); }",
+          "stack_depth": "O(length(xs))"
+        }
+      ]
+    },
+    {
+      "category": "Pair Mutators",
+      "functions": [
+        { "id": "set_head", "time": "O(1)", "space": "O(1)", "creates": "None", "effect": "Mutation" },
+        { "id": "set_tail", "time": "O(1)", "space": "O(1)", "creates": "None", "effect": "Mutation" }
+      ]
+    },
+    {
+      "category": "Array Support",
+      "functions": [
+        { "id": "array_length", "time": "O(1)", "space": "O(1)", "creates": "None" },
+        { "id": "is_array", "time": "O(1)", "space": "O(1)", "creates": "None" },
+        { "id": "array_assignment", "time": "O(n)", "space": "O(1)", "creates": "None", "note": "In Source, array assignment is O(n)" }
+      ]
+    },
+    {
+      "category": "Stream Support",
+      "functions": [
+        { "id": "stream", "time": "O(n)", "space": "O(n)", "creates": "Pair", "note": "Not lazy during construction" },
+        { "id": "stream_tail", "time": "O(1)", "space": "O(1)", "creates": "None", "property": "LAZY", "note": "Forces direct tail only" },
+        { "id": "is_stream", "time": "O(n)", "space": "O(1)", "creates": "None", "note": "Forces entire stream" },
+        { "id": "list_to_stream", "time": "O(n)", "space": "O(n)", "creates": "Pair", "property": "LAZY" },
+        { "id": "stream_to_list", "time": "O(n)", "space": "O(n)", "creates": "Pair", "note": "Forces entire stream" },
+        { "id": "stream_length", "time": "O(n)", "space": "O(1)", "creates": "None", "note": "Forces entire stream" },
+        { "id": "build_stream", "time": "O(n)", "space": "O(n)", "creates": "Pair", "property": "LAZY" },
+        { "id": "stream_for_each", "time": "O(n)", "space": "O(1)", "creates": "None", "note": "Forces entire stream" },
+        { "id": "stream_reverse", "time": "O(n)", "space": "O(n)", "creates": "Pair", "note": "Forces entire stream" },
+        { "id": "stream_append", "time": "O(n)", "space": "O(n)", "creates": "Pair", "property": "LAZY" },
+        { "id": "stream_member", "time": "O(n)", "space": "O(1)", "creates": "None", "property": "PARTIAL_FORCE" },
+        { "id": "stream_remove", "time": "O(n)", "space": "O(n)", "creates": "Pair", "property": "LAZY" },
+        { "id": "stream_remove_all", "time": "O(n)", "space": "O(n)", "creates": "Pair", "property": "LAZY" },
+        
+        {
+          "id": "stream_map",
+          "creates": "Pair",
+          "property": "LAZY",
+          "snippet": "function stream_map(f, s) { return is_null(s) ? null : pair(f(head(s)), () => stream_map(f, stream_tail(s))); }"
+        },
+        {
+          "id": "stream_filter",
+          "creates": "Pair",
+          "property": "LAZY",
+          "snippet": "function stream_filter(p, s) { return is_null(s) ? null : p(head(s)) ? pair(head(s), () => stream_filter(p, stream_tail(s))) : stream_filter(p, stream_tail(s)); }"
+        },
+        {
+          "id": "stream_ref",
+          "creates": "None",
+          "note": "Forces up to n",
+          "snippet": "function stream_ref(s, n) { return n === 0 ? head(s) : stream_ref(stream_tail(s), n - 1); }"
+        },
+        {
+          "id": "enum_stream",
+          "creates": "Pair",
+          "property": "LAZY",
+          "snippet": "function enum_stream(low, hi) { return low > hi ? null : pair(low, () => enum_stream(low + 1, hi)); }"
+        },
+        {
+          "id": "eval_stream",
+          "creates": "Pair",
+          "count": "n",
+          "note": "Materializes first n elements",
+          "snippet": "function eval_stream(s, n) { return n === 0 ? null : pair(head(s), eval_stream(stream_tail(s), n - 1)); }"
+        },
+        {
+          "id": "integers_from",
+          "creates": "Pair",
+          "property": "INFINITE",
+          "snippet": "function integers_from(n) { return pair(n, () => integers_from(n + 1)); }"
+        }
+      ]
+    }
+  ]
+}
