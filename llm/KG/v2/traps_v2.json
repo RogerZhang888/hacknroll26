@@ -1,0 +1,642 @@
+{
+  "meta": {
+    "version": "2.0",
+    "description": "Pedagogical trap strategies with validation patterns and distractor quality rules"
+  },
+
+  "trap_categories": [
+    {
+      "category": "conceptual_confusion",
+      "description": "Student confuses two related but distinct concepts",
+      "difficulty_impact": "medium to high",
+      "detection_method": "Check if distractor swaps two concept definitions"
+    },
+    {
+      "category": "off_by_one",
+      "description": "Student miscounts by ±1",
+      "difficulty_impact": "low to medium",
+      "detection_method": "Check if distractor is correct_answer ± 1"
+    },
+    {
+      "category": "timing_error",
+      "description": "Student evaluates expression at wrong time (eager vs lazy)",
+      "difficulty_impact": "high",
+      "detection_method": "Simulate eager evaluation and compare with lazy result"
+    },
+    {
+      "category": "scope_error",
+      "description": "Student uses wrong environment/frame",
+      "difficulty_impact": "medium to high",
+      "detection_method": "Trace with incorrect frame lookup"
+    },
+    {
+      "category": "mutation_assumption",
+      "description": "Student assumes operation creates copy vs mutates",
+      "difficulty_impact": "high",
+      "detection_method": "Check if distractor assumes mutation or immutability incorrectly"
+    }
+  ],
+
+  "traps": [
+    {
+      "trap_id": "loop_frame_per_iteration",
+      "concept": "loop_scoping",
+      "related_concepts": ["loops", "environment_model"],
+      "category": "scope_error",
+      "difficulty": "medium",
+      "trigger": {
+        "condition": "Loop body block is scan-empty (no declarations)",
+        "code_pattern": "while (<condition>) { <statements_without_declarations> }"
+      },
+      "strategy": {
+        "instruction": "Create a loop that modifies variables but has no const/let/function declarations in body",
+        "question_type": "How many frames are created?",
+        "correct_answer_derivation": {
+          "logic": "No frame per iteration because block is scan-empty",
+          "formula": "1 frame for function + 0 for loop iterations"
+        },
+        "distractor_generation": [
+          {
+            "type": "assumes_frame_per_iteration",
+            "formula": "1 + <iteration_count>",
+            "plausibility": "high",
+            "misconception": "Student thinks every loop iteration creates frame"
+          },
+          {
+            "type": "assumes_no_frame_at_all",
+            "formula": "0",
+            "plausibility": "low",
+            "misconception": "Student forgets function frame"
+          },
+          {
+            "type": "off_by_one",
+            "formula": "correct ± 1",
+            "plausibility": "medium",
+            "misconception": "Counting error"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": ["be numeric", "equal scan-based count"],
+        "distractors_must": [
+          "be plausible integers",
+          "represent distinct misconceptions",
+          "differ from correct answer"
+        ]
+      },
+      "examples": [
+        {
+          "code": "function f(n) {\n  let x = 0;\n  while (n > 0) {\n    x = x + n;\n    n = n - 1;\n  }\n  return x;\n}",
+          "correct_frames": 1,
+          "iteration_count": "n",
+          "distractor_assumes_per_iteration": "1 + n"
+        }
+      ]
+    },
+
+    {
+      "trap_id": "box_vs_list_notation",
+      "concept": "list_notation",
+      "related_concepts": ["lists", "pairs"],
+      "category": "conceptual_confusion",
+      "difficulty": "medium",
+      "trigger": {
+        "condition": "Nested pair structure that is not a proper list",
+        "code_pattern": "pair(pair(x, y), z) or pair(x, non-null-non-pair)"
+      },
+      "strategy": {
+        "instruction": "Create improper list or nested pair structure",
+        "question_type": "What does display() output?",
+        "correct_answer_derivation": {
+          "logic": "display uses Box Notation: shows exact pair structure with brackets",
+          "format": "[<head>, <tail>] recursively"
+        },
+        "distractor_generation": [
+          {
+            "type": "uses_list_notation",
+            "format": "list(...) format",
+            "plausibility": "high",
+            "misconception": "Student confuses display() with display_list()"
+          },
+          {
+            "type": "flattens_structure",
+            "format": "Single-level array",
+            "plausibility": "medium",
+            "misconception": "Student assumes pairs flatten automatically"
+          },
+          {
+            "type": "wrong_bracket_nesting",
+            "format": "Incorrect nesting depth",
+            "plausibility": "medium",
+            "misconception": "Student miscounts nesting levels"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "use bracket notation [...]",
+          "show exact pair structure",
+          "not use 'list' keyword unless entire structure is proper list"
+        ],
+        "distractors_must": [
+          "be syntactically valid output",
+          "represent common display/display_list confusion"
+        ]
+      },
+      "examples": [
+        {
+          "code": "display(pair(pair(1, 2), 3));",
+          "correct_output": "[[1, 2], 3]",
+          "distractor_list_notation": "list(list(1, 2), 3)",
+          "distractor_flattened": "[1, 2, 3]"
+        }
+      ]
+    },
+
+    {
+      "trap_id": "short_circuit_lazy",
+      "concept": "lazy_evaluation",
+      "related_concepts": ["substitution_model", "logical_operators"],
+      "category": "timing_error",
+      "difficulty": "high",
+      "trigger": {
+        "condition": "Logical operator (&&, ||) with error-causing second operand",
+        "code_pattern": "<truthy> || <error_expression> or <falsy> && <error_expression>"
+      },
+      "strategy": {
+        "instruction": "Use && or || where second operand causes runtime error but is never evaluated",
+        "question_type": "What is the result?",
+        "correct_answer_derivation": {
+          "logic": "First operand determines result; second operand not evaluated",
+          "formula": "Value of first operand (for ||) or false (for &&)"
+        },
+        "distractor_generation": [
+          {
+            "type": "assumes_eager_evaluation",
+            "result": "Error or undefined",
+            "plausibility": "high",
+            "misconception": "Student thinks both operands always evaluated"
+          },
+          {
+            "type": "wrong_operator_semantics",
+            "result": "Opposite boolean value",
+            "plausibility": "medium",
+            "misconception": "Student confuses && and ||"
+          },
+          {
+            "type": "assumes_undefined",
+            "result": "undefined",
+            "plausibility": "low",
+            "misconception": "Student thinks unevaluated returns undefined"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "be value of first operand or short-circuit result",
+          "not be error/undefined"
+        ],
+        "distractors_must": [
+          "include 'Error' option to test eager assumption",
+          "be distinct from correct answer"
+        ]
+      },
+      "examples": [
+        {
+          "code": "true || (1/0);",
+          "correct_result": "true",
+          "distractor_eager": "Error: division by zero",
+          "distractor_wrong_op": "false"
+        },
+        {
+          "code": "false && undefined_variable;",
+          "correct_result": "false",
+          "distractor_eager": "Error: undefined variable",
+          "distractor_wrong_op": "true"
+        }
+      ]
+    },
+
+    {
+      "trap_id": "recursive_vs_iterative_process",
+      "concept": "recursion_process",
+      "related_concepts": ["recursion_process", "iterative_process", "orders_of_growth"],
+      "category": "conceptual_confusion",
+      "difficulty": "high",
+      "trigger": {
+        "condition": "Recursive function with pending operation after recursive call",
+        "code_pattern": "return <op>(<recursive_call>); vs return <recursive_call>;"
+      },
+      "strategy": {
+        "instruction": "Write recursive function with deferred operation (not tail recursive)",
+        "question_type": "What type of process does this generate?",
+        "correct_answer_derivation": {
+          "logic": "Count deferred operations: if they build up, it's Recursive Process",
+          "method": "Check if recursive call is in tail position"
+        },
+        "distractor_generation": [
+          {
+            "type": "confuses_function_with_process",
+            "answer": "Iterative Process",
+            "plausibility": "very_high",
+            "misconception": "Student thinks 'recursive function' = 'iterative process' is impossible"
+          },
+          {
+            "type": "confuses_syntax_with_semantics",
+            "answer": "It depends on input size",
+            "plausibility": "medium",
+            "misconception": "Student thinks process type can change based on input"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "be 'Recursive Process' if deferred operations exist",
+          "be 'Iterative Process' if tail recursive"
+        ],
+        "distractors_must": [
+          "include opposite process type",
+          "test understanding of tail call position"
+        ]
+      },
+      "examples": [
+        {
+          "code": "function factorial(n) {\n  return n === 0 ? 1 : n * factorial(n - 1);\n}",
+          "correct_process": "Recursive Process",
+          "deferred_operation": "multiplication",
+          "distractor": "Iterative Process"
+        },
+        {
+          "code": "function factorial_iter(n, acc) {\n  return n === 0 ? acc : factorial_iter(n - 1, n * acc);\n}",
+          "correct_process": "Iterative Process",
+          "tail_recursive": true,
+          "distractor": "Recursive Process"
+        }
+      ]
+    },
+
+    {
+      "trap_id": "temporal_dead_zone",
+      "concept": "scanning_phase",
+      "related_concepts": ["environment_model", "basics"],
+      "category": "scope_error",
+      "difficulty": "high",
+      "trigger": {
+        "condition": "Variable accessed before its declaration in same block",
+        "code_pattern": "<use_x>; const x = <value>;"
+      },
+      "strategy": {
+        "instruction": "Access variable lexically before its const/let declaration",
+        "question_type": "What happens when this code runs?",
+        "correct_answer_derivation": {
+          "logic": "Scanning phase finds declaration but assignment not yet done",
+          "result": "Error: Name declared but not yet assigned"
+        },
+        "distractor_generation": [
+          {
+            "type": "assumes_old_js_hoisting",
+            "result": "undefined",
+            "plausibility": "high",
+            "misconception": "Student thinks Source behaves like old JavaScript"
+          },
+          {
+            "type": "assumes_no_hoisting",
+            "result": "Error: Name not declared",
+            "plausibility": "medium",
+            "misconception": "Student thinks scanning doesn't exist"
+          },
+          {
+            "type": "assumes_outer_scope",
+            "result": "Value from enclosing scope",
+            "plausibility": "medium",
+            "misconception": "Student thinks inner declaration doesn't shadow during scan"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "be error about unassigned name",
+          "not be undefined or outer scope value"
+        ],
+        "distractors_must": [
+          "include 'undefined' to test old JS knowledge",
+          "include outer scope value if applicable"
+        ]
+      },
+      "examples": [
+        {
+          "code": "const x = 10;\nfunction f() {\n  display(x);\n  const x = 20;\n}\nf();",
+          "correct_result": "Error: Name x declared but not yet assigned",
+          "distractor_undefined": "undefined",
+          "distractor_outer": "10"
+        }
+      ]
+    },
+
+    {
+      "trap_id": "stream_tail_thunk",
+      "concept": "stream_lazy",
+      "related_concepts": ["streams", "higher_order_functions"],
+      "category": "timing_error",
+      "difficulty": "high",
+      "trigger": {
+        "condition": "Side effect or expensive operation in stream tail",
+        "code_pattern": "pair(<head>, () => <expensive_or_side_effect>)"
+      },
+      "strategy": {
+        "instruction": "Embed side effect (display, error) in stream tail thunk",
+        "question_type": "When does the side effect occur?",
+        "correct_answer_derivation": {
+          "logic": "Tail is a thunk; effect happens only when stream_tail is called",
+          "timing": "Not at stream creation, but at tail access"
+        },
+        "distractor_generation": [
+          {
+            "type": "assumes_eager",
+            "timing": "During stream construction",
+            "plausibility": "very_high",
+            "misconception": "Student thinks streams are eager like lists"
+          },
+          {
+            "type": "assumes_never",
+            "timing": "Never (thunk never forced)",
+            "plausibility": "low",
+            "misconception": "Student thinks thunks are never evaluated"
+          },
+          {
+            "type": "assumes_all_at_once",
+            "timing": "All tails evaluated at first access",
+            "plausibility": "medium",
+            "misconception": "Student thinks forcing one tail forces all"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "indicate deferred evaluation",
+          "specify trigger event (stream_tail call)"
+        ],
+        "distractors_must": [
+          "include immediate evaluation option",
+          "test understanding of thunk mechanics"
+        ]
+      },
+      "examples": [
+        {
+          "code": "const s = pair(1, () => { display('tail!'); return null; });\ndisplay('created');",
+          "correct_timing": "Displays 'created' first; 'tail!' only if stream_tail(s) called",
+          "distractor_eager": "Displays 'tail!' then 'created'",
+          "distractor_never": "Only displays 'created', never 'tail!'"
+        }
+      ]
+    },
+
+    {
+      "trap_id": "append_structural_sharing",
+      "concept": "structural_sharing",
+      "related_concepts": ["list_library", "pair_mutation"],
+      "category": "mutation_assumption",
+      "difficulty": "very_high",
+      "trigger": {
+        "condition": "append two lists, then mutate second list",
+        "code_pattern": "const result = append(xs, ys); set_head(ys, ...); // check result"
+      },
+      "strategy": {
+        "instruction": "Use append to join lists, then mutate the second original list",
+        "question_type": "Is the append result affected by the mutation?",
+        "correct_answer_derivation": {
+          "logic": "append copies first list but shares pointer to second list",
+          "result": "Mutation of second list DOES affect append result"
+        },
+        "distractor_generation": [
+          {
+            "type": "assumes_full_copy",
+            "result": "Mutation does NOT affect result",
+            "plausibility": "very_high",
+            "misconception": "Student thinks append copies both lists"
+          },
+          {
+            "type": "assumes_no_copy",
+            "result": "Mutation of FIRST list affects result",
+            "plausibility": "medium",
+            "misconception": "Student thinks append copies neither list"
+          },
+          {
+            "type": "assumes_all_shared",
+            "result": "Both lists share all structure",
+            "plausibility": "low",
+            "misconception": "Student confuses append with list construction"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "indicate second list is shared",
+          "show mutation affects result"
+        ],
+        "distractors_must": [
+          "include 'no effect' option (very tempting)",
+          "test structural sharing understanding"
+        ]
+      },
+      "examples": [
+        {
+          "code": "const xs = list(1, 2);\nconst ys = list(3, 4);\nconst result = append(xs, ys);\nset_head(ys, 99);\ndisplay(result);",
+          "correct_output": "list(1, 2, 99, 4)",
+          "distractor_no_effect": "list(1, 2, 3, 4)",
+          "distractor_first_affected": "list(1, 2, 3, 4) but xs also changed"
+        }
+      ]
+    },
+
+    {
+      "trap_id": "complexity_time_vs_space",
+      "concept": "complexity_confusion",
+      "related_concepts": ["orders_of_growth", "recursion_process"],
+      "category": "conceptual_confusion",
+      "difficulty": "medium",
+      "trigger": {
+        "condition": "Function with different time and space complexity",
+        "code_pattern": "Tail recursive function (O(n) time, O(1) space)"
+      },
+      "strategy": {
+        "instruction": "Ask about space complexity of function with O(1) space but O(n) time",
+        "question_type": "What is the space complexity?",
+        "correct_answer_derivation": {
+          "logic": "Count maximum stack depth or deferred operations",
+          "formula": "O(1) for iterative process"
+        },
+        "distractor_generation": [
+          {
+            "type": "confuses_with_time",
+            "answer": "O(n)",
+            "plausibility": "very_high",
+            "misconception": "Student gives time complexity instead of space"
+          },
+          {
+            "type": "counts_iterations",
+            "answer": "O(n) because n iterations",
+            "plausibility": "high",
+            "misconception": "Student thinks iterations = space"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "match deferred operation count",
+          "not confuse with time complexity"
+        ],
+        "distractors_must": [
+          "include time complexity value",
+          "test time vs space distinction"
+        ]
+      }
+    },
+
+    {
+      "trap_id": "map_filter_accumulate_confusion",
+      "concept": "hof_semantics",
+      "related_concepts": ["list_library", "higher_order_functions"],
+      "category": "conceptual_confusion",
+      "difficulty": "medium",
+      "trigger": {
+        "condition": "Question about what map/filter/accumulate does",
+        "code_pattern": "map(f, xs) vs filter(pred, xs) vs accumulate(op, init, xs)"
+      },
+      "strategy": {
+        "instruction": "Ask which function to use for a specific task",
+        "question_type": "Which function transforms each element?",
+        "correct_answer_derivation": {
+          "logic": "map transforms, filter selects, accumulate reduces",
+          "distinctions": "map: n -> n elements, filter: n -> 0..n, accumulate: n -> 1"
+        },
+        "distractor_generation": [
+          {
+            "type": "confuses_map_with_filter",
+            "answer": "filter",
+            "plausibility": "medium",
+            "misconception": "Student confuses transformation with selection"
+          },
+          {
+            "type": "confuses_map_with_accumulate",
+            "answer": "accumulate",
+            "plausibility": "medium",
+            "misconception": "Student confuses 1-to-1 with many-to-1"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "match semantic definition",
+          "distinguish transformation/selection/reduction"
+        ],
+        "distractors_must": [
+          "include other HOF options",
+          "test semantic understanding"
+        ]
+      }
+    },
+
+    {
+      "trap_id": "recurrence_pattern_matching",
+      "concept": "recurrence_relations",
+      "related_concepts": ["orders_of_growth", "recursion"],
+      "category": "conceptual_confusion",
+      "difficulty": "very_high",
+      "trigger": {
+        "condition": "Derive complexity from recurrence relation",
+        "code_pattern": "T(n) = <pattern>"
+      },
+      "strategy": {
+        "instruction": "Give recurrence relation and ask for complexity",
+        "question_type": "What is the complexity of T(n)?",
+        "correct_answer_derivation": {
+          "logic": "Match to known recurrence pattern",
+          "method": "Use master theorem or pattern matching"
+        },
+        "distractor_generation": [
+          {
+            "type": "wrong_pattern",
+            "answer": "Off by one level (e.g., O(n) instead of O(n log n))",
+            "plausibility": "high",
+            "misconception": "Student matches wrong pattern"
+          },
+          {
+            "type": "ignores_work",
+            "answer": "Counts only recursive calls, ignores work per call",
+            "plausibility": "high",
+            "misconception": "Student forgets to multiply by work per level"
+          },
+          {
+            "type": "wrong_tree_depth",
+            "answer": "Uses wrong depth (n vs log n)",
+            "plausibility": "medium",
+            "misconception": "Student confuses linear vs divide-and-conquer"
+          }
+        ]
+      },
+      "validation": {
+        "correct_answer_must": [
+          "match pattern in operational_rules.json",
+          "be big-O notation"
+        ],
+        "distractors_must": [
+          "include off-by-one-level complexity",
+          "test pattern matching skill"
+        ]
+      }
+    }
+  ],
+
+  "distractor_quality_rules": {
+    "plausibility_requirements": {
+      "very_high": "Represents most common student error; >40% of students choose this",
+      "high": "Represents common misconception; 20-40% choose this",
+      "medium": "Represents less common but understandable error; 10-20%",
+      "low": "Rarely chosen but theoretically possible; <10%"
+    },
+    "diversity_requirements": {
+      "must_differ_by_category": "Each distractor should test different misconception type",
+      "must_differ_by_value": "No two distractors should have same answer",
+      "should_span_plausibility": "Include mix of high and medium plausibility"
+    },
+    "validity_checks": {
+      "type_matching": "Distractor must be same type as correct answer (number/string/boolean)",
+      "format_matching": "Distractor must use same format (e.g., big-O notation)",
+      "no_obvious_impossibility": "Distractor must not be trivially impossible (e.g., negative frame count)"
+    }
+  },
+
+  "meta_trap_patterns": {
+    "when_to_use_off_by_one": [
+      "Counting frames",
+      "Counting pairs",
+      "Counting recursive calls",
+      "List length questions"
+    ],
+    "when_to_use_timing_error": [
+      "Lazy evaluation (streams)",
+      "Short-circuit operators",
+      "Scanning phase",
+      "Side effects in functions"
+    ],
+    "when_to_use_confusion": [
+      "Process type (recursive vs iterative)",
+      "Complexity type (time vs space)",
+      "Function semantics (map vs filter vs accumulate)",
+      "Notation (box vs list)"
+    ],
+    "when_to_use_scope_error": [
+      "Environment model questions",
+      "Loop frame creation",
+      "Shadowing",
+      "Temporal dead zone"
+    ],
+    "when_to_use_mutation_assumption": [
+      "Structural sharing (append)",
+      "Set operations",
+      "Array vs list operations",
+      "Memoization side effects"
+    ]
+  }
+}

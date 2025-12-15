@@ -1,0 +1,547 @@
+{
+  "meta": {
+    "version": "2.0",
+    "description": "Operational semantics with derivation rules, complexity inference, and validation patterns"
+  },
+
+  "recurrence_patterns": [
+    {
+      "pattern": "T(n) = T(n-c) + O(1)",
+      "complexity": "O(n)",
+      "name": "linear_decreasing",
+      "example": "factorial, length",
+      "characteristics": {
+        "calls_per_level": 1,
+        "work_per_call": "constant",
+        "recursion_depth": "n"
+      }
+    },
+    {
+      "pattern": "T(n) = T(n/2) + O(n)",
+      "complexity": "O(n)",
+      "name": "divide_conquer_linear_work",
+      "example": "find_max with linear scan per level",
+      "characteristics": {
+        "calls_per_level": 1,
+        "work_per_call": "linear",
+        "recursion_depth": "log n"
+      }
+    },
+    {
+      "pattern": "T(n) = 2T(n/2) + O(1)",
+      "complexity": "O(n)",
+      "name": "tree_traversal",
+      "example": "count_nodes, tree_height",
+      "characteristics": {
+        "calls_per_level": 2,
+        "work_per_call": "constant",
+        "recursion_depth": "log n"
+      }
+    },
+    {
+      "pattern": "T(n) = 2T(n/2) + O(n)",
+      "complexity": "O(n log n)",
+      "name": "merge_sort_pattern",
+      "example": "merge_sort",
+      "characteristics": {
+        "calls_per_level": 2,
+        "work_per_call": "linear",
+        "recursion_depth": "log n"
+      }
+    },
+    {
+      "pattern": "T(n) = T(n-c) + O(log n)",
+      "complexity": "O(n log n)",
+      "name": "linear_recursion_logarithmic_work",
+      "example": "custom_sort with binary search per step",
+      "characteristics": {
+        "calls_per_level": 1,
+        "work_per_call": "logarithmic",
+        "recursion_depth": "n"
+      }
+    },
+    {
+      "pattern": "T(n) = T(n-c) + O(n)",
+      "complexity": "O(n^2)",
+      "name": "selection_insertion_sort_pattern",
+      "example": "insertion_sort, selection_sort",
+      "characteristics": {
+        "calls_per_level": 1,
+        "work_per_call": "linear",
+        "recursion_depth": "n"
+      }
+    },
+    {
+      "pattern": "T(n) = 2T(n-c) + O(1)",
+      "complexity": "O(2^n)",
+      "name": "tree_recursion_exponential",
+      "example": "fibonacci, towers_of_hanoi",
+      "characteristics": {
+        "calls_per_level": 2,
+        "work_per_call": "constant",
+        "recursion_depth": "n"
+      }
+    },
+    {
+      "pattern": "T(n) = 2T(n-c) + O(n)",
+      "complexity": "O(n * 2^n)",
+      "name": "tree_recursion_linear_work",
+      "example": "generate_subsets with list construction",
+      "characteristics": {
+        "calls_per_level": 2,
+        "work_per_call": "linear",
+        "recursion_depth": "n"
+      }
+    }
+  ],
+
+  "complexity_inference_rules": [
+    {
+      "rule_id": "single_recursive_call_constant_work",
+      "pattern": "function has 1 recursive call + O(1) operations",
+      "inferred_time": "O(recursion_depth)",
+      "inferred_space": "O(recursion_depth)",
+      "process_type": "depends on tail call position"
+    },
+    {
+      "rule_id": "single_tail_recursive_call",
+      "pattern": "function has 1 recursive call in tail position",
+      "inferred_time": "O(recursion_depth)",
+      "inferred_space": "O(1)",
+      "process_type": "iterative"
+    },
+    {
+      "rule_id": "two_recursive_calls_constant_work",
+      "pattern": "function has 2 recursive calls + O(1) operations",
+      "inferred_time": "O(2^depth) or O(n) depending on structure",
+      "inferred_space": "O(depth)",
+      "process_type": "recursive"
+    },
+    {
+      "rule_id": "single_recursive_call_linear_work",
+      "pattern": "function has 1 recursive call + O(n) operations (loop/scan)",
+      "inferred_time": "O(n * recursion_depth)",
+      "inferred_space": "O(recursion_depth)",
+      "process_type": "recursive"
+    },
+    {
+      "rule_id": "memoization_effect",
+      "pattern": "function uses memo table with n possible arguments",
+      "inferred_time": "O(n) if each argument computed once",
+      "inferred_space": "O(n) for memo table + O(depth) for stack",
+      "process_type": "recursive but cached"
+    }
+  ],
+
+  "sorting_algorithms": [
+    {
+      "id": "insertion_sort",
+      "time_best": "O(n)",
+      "time_average": "O(n^2)",
+      "time_worst": "O(n^2)",
+      "space": "O(n) for list reconstruction or O(1) for array",
+      "stable": true,
+      "strategy": "Insert each element into sorted portion",
+      "recurrence": "T(n) = T(n-1) + O(n)"
+    },
+    {
+      "id": "selection_sort",
+      "time_best": "O(n^2)",
+      "time_average": "O(n^2)",
+      "time_worst": "O(n^2)",
+      "space": "O(n) for list reconstruction or O(1) for array",
+      "stable": false,
+      "strategy": "Find minimum in unsorted portion, swap to front",
+      "recurrence": "T(n) = T(n-1) + O(n)"
+    },
+    {
+      "id": "merge_sort",
+      "time_best": "O(n log n)",
+      "time_average": "O(n log n)",
+      "time_worst": "O(n log n)",
+      "space": "O(n)",
+      "stable": true,
+      "strategy": "Divide in half, sort recursively, merge sorted halves",
+      "recurrence": "T(n) = 2T(n/2) + O(n)"
+    },
+    {
+      "id": "quicksort",
+      "time_best": "O(n log n)",
+      "time_average": "O(n log n)",
+      "time_worst": "O(n^2)",
+      "space": "O(log n) for recursion stack",
+      "stable": false,
+      "strategy": "Partition around pivot, sort recursively",
+      "recurrence": "T(n) = 2T(n/2) + O(n) average; T(n) = T(n-1) + O(n) worst"
+    }
+  ],
+
+  "function_semantics": {
+    "list_primitives": [
+      {
+        "id": "pair",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "1 pair",
+        "side_effects": "none",
+        "validation": "always returns pair structure"
+      },
+      {
+        "id": "head",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "none",
+        "side_effects": "none",
+        "validation": "requires is_pair(x) to be true"
+      },
+      {
+        "id": "tail",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "none",
+        "side_effects": "none",
+        "validation": "requires is_pair(x) to be true"
+      }
+    ],
+
+    "list_library": [
+      {
+        "id": "map",
+        "time": "O(n)",
+        "space": "O(n)",
+        "creates": "n pairs",
+        "process_type": "recursive",
+        "stack_depth": "n",
+        "implementation": "function map(f, xs) {\n  return is_null(xs)\n    ? null\n    : pair(f(head(xs)), map(f, tail(xs)));\n}",
+        "validation_patterns": [
+          "recursive_call_in_tail_of_pair",
+          "function_application_to_head",
+          "n_deferred_pair_operations"
+        ],
+        "common_errors": [
+          "miscounts_pairs_as_n+1",
+          "assumes_iterative_process",
+          "forgets_function_call_cost"
+        ]
+      },
+      {
+        "id": "filter",
+        "time": "O(n)",
+        "space": "O(n) worst case",
+        "creates": "0 to n pairs",
+        "process_type": "recursive",
+        "stack_depth": "n",
+        "implementation": "function filter(pred, xs) {\n  return is_null(xs)\n    ? null\n    : pred(head(xs))\n      ? pair(head(xs), filter(pred, tail(xs)))\n      : filter(pred, tail(xs));\n}",
+        "validation_patterns": [
+          "conditional_pair_creation",
+          "predicate_application_to_head",
+          "n_recursive_calls_regardless"
+        ],
+        "common_errors": [
+          "assumes_pairs_equals_filtered_count",
+          "forgets_both_branches_recurse",
+          "miscounts_predicate_calls"
+        ]
+      },
+      {
+        "id": "accumulate",
+        "time": "O(n)",
+        "space": "O(n)",
+        "creates": "n frames",
+        "process_type": "recursive",
+        "stack_depth": "n",
+        "implementation": "function accumulate(op, init, xs) {\n  return is_null(xs)\n    ? init\n    : op(head(xs), accumulate(op, init, tail(xs)));\n}",
+        "validation_patterns": [
+          "n_deferred_operations",
+          "binary_operation_application",
+          "recursive_call_as_second_argument"
+        ],
+        "common_errors": [
+          "assumes_iterative_process",
+          "confuses_argument_order",
+          "forgets_operation_cost"
+        ]
+      },
+      {
+        "id": "append",
+        "time": "O(length(xs))",
+        "space": "O(length(xs))",
+        "creates": "length(xs) pairs",
+        "process_type": "recursive",
+        "stack_depth": "length(xs)",
+        "implementation": "function append(xs, ys) {\n  return is_null(xs)\n    ? ys\n    : pair(head(xs), append(tail(xs), ys));\n}",
+        "structural_sharing": "Copies xs but shares ys",
+        "validation_patterns": [
+          "copies_first_list",
+          "shares_second_list",
+          "mutation_of_ys_affects_result"
+        ],
+        "common_errors": [
+          "assumes_copies_both_lists",
+          "miscounts_pairs_as_n+m",
+          "forgets_structural_sharing"
+        ]
+      },
+      {
+        "id": "reverse",
+        "time": "O(n)",
+        "space": "O(n)",
+        "creates": "n pairs",
+        "process_type": "depends on implementation",
+        "common_implementations": [
+          {
+            "type": "recursive",
+            "complexity": "O(n^2) if using append",
+            "space": "O(n)"
+          },
+          {
+            "type": "iterative_with_accumulator",
+            "complexity": "O(n)",
+            "space": "O(1) process but O(n) result"
+          }
+        ]
+      },
+      {
+        "id": "length",
+        "time": "O(n)",
+        "space": "O(1)",
+        "creates": "none",
+        "process_type": "iterative (can be tail recursive)",
+        "stack_depth": "O(1) if tail recursive",
+        "validation_patterns": [
+          "tail_recursive_counter",
+          "constant_space_usage"
+        ]
+      }
+    ],
+
+    "stream_primitives": [
+      {
+        "id": "stream_tail",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "none (forces thunk)",
+        "lazy": true,
+        "implementation": "Forces the tail thunk and returns result",
+        "validation_patterns": [
+          "forces_immediate_tail_only",
+          "does_not_force_rest_of_stream"
+        ],
+        "common_errors": [
+          "assumes_forces_entire_stream",
+          "confuses_with_list_tail"
+        ]
+      },
+      {
+        "id": "stream_map",
+        "time": "O(1) at creation",
+        "space": "O(1) at creation",
+        "creates": "1 pair with thunk",
+        "lazy": true,
+        "implementation": "function stream_map(f, s) {\n  return is_null(s)\n    ? null\n    : pair(f(head(s)), () => stream_map(f, stream_tail(s)));\n}",
+        "validation_patterns": [
+          "wraps_recursive_call_in_thunk",
+          "evaluates_head_immediately",
+          "defers_tail_computation"
+        ],
+        "common_errors": [
+          "assumes_evaluates_entire_stream",
+          "forgets_thunk_wrapper",
+          "thinks_its_eager_like_list_map"
+        ]
+      },
+      {
+        "id": "stream_filter",
+        "time": "O(k) where k is position of first match",
+        "space": "O(k)",
+        "creates": "1 pair when match found",
+        "lazy": true,
+        "implementation": "function stream_filter(pred, s) {\n  return is_null(s)\n    ? null\n    : pred(head(s))\n      ? pair(head(s), () => stream_filter(pred, stream_tail(s)))\n      : stream_filter(pred, stream_tail(s));\n}",
+        "validation_patterns": [
+          "forces_stream_until_match",
+          "wraps_matched_tail_in_thunk",
+          "recursively_searches_non_matches"
+        ],
+        "common_errors": [
+          "assumes_O1_complexity",
+          "forgets_must_search_for_match",
+          "thinks_defers_all_work"
+        ]
+      },
+      {
+        "id": "eval_stream",
+        "time": "O(n)",
+        "space": "O(n)",
+        "creates": "n pairs",
+        "lazy": false,
+        "implementation": "function eval_stream(s, n) {\n  return n === 0\n    ? null\n    : pair(head(s), eval_stream(stream_tail(s), n - 1));\n}",
+        "validation_patterns": [
+          "forces_first_n_elements",
+          "materializes_to_list",
+          "n_stream_tail_calls"
+        ]
+      },
+      {
+        "id": "integers_from",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "1 pair",
+        "lazy": true,
+        "infinite": true,
+        "implementation": "function integers_from(n) {\n  return pair(n, () => integers_from(n + 1));\n}",
+        "validation_patterns": [
+          "constructs_infinite_stream",
+          "constant_time_creation",
+          "each_element_deferred"
+        ]
+      }
+    ],
+
+    "pair_mutators": [
+      {
+        "id": "set_head",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "none",
+        "side_effects": "mutates pair",
+        "implementation": "Destructively updates car of pair",
+        "validation_patterns": [
+          "modifies_shared_structure",
+          "affects_all_references",
+          "constant_time_operation"
+        ]
+      },
+      {
+        "id": "set_tail",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "none",
+        "side_effects": "mutates pair",
+        "implementation": "Destructively updates cdr of pair",
+        "validation_patterns": [
+          "modifies_shared_structure",
+          "affects_all_references",
+          "can_create_cycles"
+        ]
+      }
+    ],
+
+    "array_operations": [
+      {
+        "id": "array_assignment",
+        "time": "O(n)",
+        "space": "O(1)",
+        "creates": "none",
+        "side_effects": "mutates array",
+        "note": "In Source, array assignment copies entire array"
+      },
+      {
+        "id": "array_length",
+        "time": "O(1)",
+        "space": "O(1)",
+        "creates": "none"
+      }
+    ]
+  },
+
+  "environment_model_rules": [
+    {
+      "rule_id": "function_creation",
+      "description": "Creating a function captures current environment",
+      "validation": "Function object points to defining environment"
+    },
+    {
+      "rule_id": "function_application",
+      "description": "Extend function's environment with parameter bindings",
+      "validation": "New frame created with parent = function's environment"
+    },
+    {
+      "rule_id": "block_frame_creation",
+      "description": "Block creates frame only if scan-non-empty",
+      "validation": "Scan for const/let/function declarations",
+      "common_error": "Assumes frame created unconditionally"
+    },
+    {
+      "rule_id": "loop_frame_creation",
+      "description": "Loop body block follows block frame rules",
+      "validation": "Check if loop body has declarations",
+      "common_error": "Assumes new frame per iteration"
+    },
+    {
+      "rule_id": "scanning_phase",
+      "description": "All declarations hoisted before evaluation",
+      "validation": "Variables accessible but unassigned before declaration line",
+      "common_error": "Assumes temporal dead zone doesn't exist"
+    },
+    {
+      "rule_id": "name_lookup",
+      "description": "Search current frame, then parent chain",
+      "validation": "Follow environment pointers until found or global"
+    },
+    {
+      "rule_id": "shadowing",
+      "description": "Inner declaration hides outer",
+      "validation": "Search stops at first match in frame chain"
+    }
+  ],
+
+  "cse_machine_rules": [
+    {
+      "component": "Control",
+      "role": "Tracks deferred operands and operators (instructions)",
+      "initialization": "Contains program AST",
+      "transitions": [
+        "Literals → push to Stash",
+        "Variables → lookup in E, push to Stash",
+        "Applications → push operands and operator to Control",
+        "Binary ops → push operands, then operator instruction"
+      ]
+    },
+    {
+      "component": "Stash",
+      "role": "Stores intermediate results/argument values",
+      "initialization": "Empty",
+      "transitions": [
+        "Receives values from Control",
+        "Values consumed by operator instructions"
+      ]
+    },
+    {
+      "component": "Environment",
+      "role": "Maps names to values (frames)",
+      "initialization": "Global frame",
+      "transitions": [
+        "Extended on function application",
+        "Extended on block entry (if scan-non-empty)"
+      ]
+    }
+  ],
+
+  "validation_patterns": {
+    "tail_recursion_check": {
+      "description": "Verify recursive call is in tail position",
+      "pattern": "return <recursive_call>; with no pending operations",
+      "anti_pattern": "return <op>(<recursive_call>); has pending operation"
+    },
+    "tree_recursion_check": {
+      "description": "Verify 2+ recursive calls exist",
+      "pattern": "Count recursive call sites in function body",
+      "minimum": 2
+    },
+    "lazy_evaluation_check": {
+      "description": "Verify stream tail is wrapped in thunk",
+      "pattern": "() => <expression> as second argument to pair",
+      "anti_pattern": "Direct expression evaluation"
+    },
+    "structural_sharing_check": {
+      "description": "Identify operations that share structure",
+      "operations": ["append shares second list", "reverse creates new structure"],
+      "validation": "Trace pointer equality"
+    },
+    "deferred_operation_count": {
+      "description": "Count pending operations at maximum recursion depth",
+      "method": "Trace execution and count operations waiting for return value",
+      "equals_space_complexity": true
+    }
+  }
+}

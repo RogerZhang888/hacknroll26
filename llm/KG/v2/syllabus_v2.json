@@ -1,0 +1,748 @@
+{
+  "meta": {
+    "version": "2.0",
+    "description": "Knowledge graph with compositional rules, validation patterns, and queryable relationships"
+  },
+  
+  "topics": [
+    {
+      "id": "basics",
+      "chapter": 1,
+      "type": "syntax",
+      "name": "Basic Syntax",
+      "desc": "const, function, if-else, blocks, lambda",
+      "difficulty": 1,
+      "prerequisites": [],
+      "testable_patterns": [
+        "function_declaration",
+        "lambda_expression",
+        "conditional_branching",
+        "block_scoping"
+      ]
+    },
+    {
+      "id": "substitution_model",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Substitution Model",
+      "desc": "Applicative Order, Lambda Evaluation, expression reduction",
+      "difficulty": 2,
+      "prerequisites": ["basics"],
+      "testable_patterns": [
+        "applicative_order_reduction",
+        "lambda_substitution",
+        "expression_evaluation_order"
+      ],
+      "common_errors": [
+        "confuses_applicative_vs_normal_order",
+        "incorrect_substitution_in_nested_lambdas"
+      ]
+    },
+    {
+      "id": "recursion",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Recursion",
+      "desc": "Base case + Wishful Thinking, Recursive function structure",
+      "difficulty": 2,
+      "prerequisites": ["basics", "substitution_model"],
+      "testable_patterns": [
+        "base_case_identification",
+        "recursive_call_structure",
+        "wishful_thinking_approach"
+      ],
+      "common_errors": [
+        "missing_base_case",
+        "infinite_recursion",
+        "incorrect_recursive_step"
+      ]
+    },
+    {
+      "id": "recursion_process",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Recursive Process",
+      "desc": "Deferred operations build up as input size grows",
+      "difficulty": 3,
+      "prerequisites": ["recursion", "substitution_model"],
+      "testable_patterns": [
+        "deferred_operation_identification",
+        "stack_frame_counting",
+        "process_shape_analysis"
+      ],
+      "common_errors": [
+        "confuses_recursive_function_with_recursive_process",
+        "miscounts_deferred_operations",
+        "assumes_tail_call_optimization"
+      ]
+    },
+    {
+      "id": "iterative_process",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Iterative Process",
+      "desc": "Recursive function without deferred operations (tail recursion)",
+      "difficulty": 3,
+      "prerequisites": ["recursion", "recursion_process"],
+      "testable_patterns": [
+        "tail_call_position",
+        "accumulator_pattern",
+        "constant_space_verification"
+      ],
+      "common_errors": [
+        "assumes_iteration_requires_loops",
+        "confuses_with_recursive_process",
+        "incorrect_accumulator_usage"
+      ]
+    },
+    {
+      "id": "orders_of_growth",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Orders of Growth",
+      "desc": "Big-O, Omega, Theta notation for time and space",
+      "difficulty": 3,
+      "prerequisites": ["recursion_process", "iterative_process"],
+      "testable_patterns": [
+        "complexity_classification",
+        "dominant_term_identification",
+        "space_vs_time_tradeoff"
+      ],
+      "common_errors": [
+        "confuses_time_and_space_complexity",
+        "ignores_constant_factors",
+        "incorrect_log_vs_linear_classification"
+      ]
+    },
+    {
+      "id": "recurrence_relations",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Recurrence Relations",
+      "desc": "Solving T(n) for time complexity analysis",
+      "difficulty": 4,
+      "prerequisites": ["orders_of_growth", "recursion_process"],
+      "testable_patterns": [
+        "recurrence_setup",
+        "pattern_matching_to_solution",
+        "master_theorem_application"
+      ],
+      "common_errors": [
+        "incorrect_recurrence_formulation",
+        "wrong_pattern_matching",
+        "misses_work_per_level"
+      ]
+    },
+    {
+      "id": "higher_order_functions",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Higher-Order Functions",
+      "desc": "Functions that take or return functions",
+      "difficulty": 3,
+      "prerequisites": ["basics", "substitution_model"],
+      "testable_patterns": [
+        "function_as_argument",
+        "function_as_return_value",
+        "closure_creation"
+      ],
+      "common_errors": [
+        "invokes_function_instead_of_passing_it",
+        "incorrect_closure_scope",
+        "confuses_lambda_with_function_call"
+      ]
+    },
+    {
+      "id": "scope_lexical",
+      "chapter": 1,
+      "type": "concept",
+      "name": "Lexical Scoping",
+      "desc": "Variable resolution based on lexical structure",
+      "difficulty": 3,
+      "prerequisites": ["basics", "higher_order_functions"],
+      "testable_patterns": [
+        "scope_chain_resolution",
+        "shadowing_behavior",
+        "closure_variable_capture"
+      ],
+      "common_errors": [
+        "assumes_dynamic_scoping",
+        "incorrect_shadowing_resolution",
+        "confuses_declaration_with_call_time_scope"
+      ]
+    },
+    {
+      "id": "pairs",
+      "chapter": 2,
+      "type": "structure",
+      "name": "Pairs",
+      "desc": "pair, head, tail, is_pair, is_null",
+      "difficulty": 2,
+      "prerequisites": ["basics"],
+      "testable_patterns": [
+        "pair_construction",
+        "pair_deconstruction",
+        "pair_vs_null_checking"
+      ],
+      "common_errors": [
+        "confuses_head_tail_order",
+        "assumes_pairs_are_mutable",
+        "incorrect_null_handling"
+      ]
+    },
+    {
+      "id": "lists",
+      "chapter": 2,
+      "type": "structure",
+      "name": "Lists",
+      "desc": "Proper lists, Box Notation vs List Notation",
+      "difficulty": 2,
+      "prerequisites": ["pairs", "recursion"],
+      "testable_patterns": [
+        "list_definition_verification",
+        "box_notation_interpretation",
+        "list_notation_interpretation",
+        "proper_list_checking"
+      ],
+      "common_errors": [
+        "confuses_box_vs_list_notation",
+        "assumes_improper_list_is_valid",
+        "incorrect_display_vs_display_list_output"
+      ]
+    },
+    {
+      "id": "list_library",
+      "chapter": 2,
+      "type": "library",
+      "name": "List Library Functions",
+      "desc": "map, filter, accumulate, append, reverse, member, remove",
+      "difficulty": 3,
+      "prerequisites": ["lists", "higher_order_functions", "recursion_process"],
+      "testable_patterns": [
+        "map_transformation",
+        "filter_predicate_application",
+        "accumulate_folding",
+        "structural_sharing_in_append"
+      ],
+      "common_errors": [
+        "confuses_map_filter_accumulate",
+        "assumes_append_copies_both_lists",
+        "incorrect_predicate_function",
+        "miscounts_pair_creation"
+      ]
+    },
+    {
+      "id": "trees",
+      "chapter": 2,
+      "type": "structure",
+      "name": "Trees",
+      "desc": "Binary Trees, BSTs, Tree Traversal",
+      "difficulty": 4,
+      "prerequisites": ["lists", "recursion"],
+      "testable_patterns": [
+        "tree_structure_verification",
+        "tree_traversal_order",
+        "bst_property_checking",
+        "tree_recursion_pattern"
+      ],
+      "common_errors": [
+        "confuses_tree_with_list",
+        "incorrect_traversal_order",
+        "violates_bst_property",
+        "miscounts_recursive_calls"
+      ]
+    },
+    {
+      "id": "sorting",
+      "chapter": 2,
+      "type": "algorithm",
+      "name": "Sorting Algorithms",
+      "desc": "Insertion, Selection, Merge, Quicksort",
+      "difficulty": 4,
+      "prerequisites": ["lists", "recursion_process", "orders_of_growth"],
+      "testable_patterns": [
+        "sorting_algorithm_identification",
+        "complexity_analysis",
+        "stability_verification",
+        "space_complexity_tradeoff"
+      ],
+      "common_errors": [
+        "confuses_different_sorting_algorithms",
+        "incorrect_complexity_classification",
+        "ignores_worst_vs_average_case",
+        "wrong_space_complexity"
+      ]
+    },
+    {
+      "id": "state",
+      "chapter": 3,
+      "type": "concept",
+      "name": "State and Assignment",
+      "desc": "Variable assignment (let, =), mutation",
+      "difficulty": 3,
+      "prerequisites": ["basics"],
+      "testable_patterns": [
+        "assignment_vs_declaration",
+        "mutation_effect_tracing",
+        "reference_vs_value_semantics"
+      ],
+      "common_errors": [
+        "confuses_const_with_let",
+        "assumes_all_data_immutable",
+        "incorrect_reassignment_scope"
+      ]
+    },
+    {
+      "id": "environment_model",
+      "chapter": 3,
+      "type": "concept",
+      "name": "Environment Model",
+      "desc": "Frames, Scoping, Shadowing, Hoisting (Scanning)",
+      "difficulty": 4,
+      "prerequisites": ["state", "scope_lexical"],
+      "testable_patterns": [
+        "frame_creation_rules",
+        "scanning_phase_behavior",
+        "temporal_dead_zone",
+        "name_lookup_resolution",
+        "shadowing_in_nested_blocks"
+      ],
+      "common_errors": [
+        "assumes_frame_per_iteration",
+        "confuses_scanning_with_execution",
+        "incorrect_hoisting_behavior",
+        "wrong_scope_chain"
+      ]
+    },
+    {
+      "id": "loops",
+      "chapter": 3,
+      "type": "syntax",
+      "name": "Loops",
+      "desc": "while, for, break, continue, Loop Control Variables",
+      "difficulty": 3,
+      "prerequisites": ["state", "environment_model"],
+      "testable_patterns": [
+        "loop_frame_creation",
+        "scan_empty_block_optimization",
+        "loop_control_variable_scope",
+        "break_continue_behavior"
+      ],
+      "common_errors": [
+        "assumes_new_frame_per_iteration",
+        "incorrect_loop_variable_scope",
+        "confuses_break_with_return",
+        "infinite_loop_detection"
+      ]
+    },
+    {
+      "id": "arrays",
+      "chapter": 3,
+      "type": "structure",
+      "name": "Arrays",
+      "desc": "Literal arrays [], array assignment, array_length, is_array",
+      "difficulty": 3,
+      "prerequisites": ["state", "loops"],
+      "testable_patterns": [
+        "array_indexing",
+        "array_mutation",
+        "array_vs_list_distinction",
+        "array_literal_syntax"
+      ],
+      "common_errors": [
+        "confuses_array_with_list",
+        "incorrect_index_bounds",
+        "assumes_O1_assignment_cost",
+        "forgets_arrays_are_mutable"
+      ]
+    },
+    {
+      "id": "streams",
+      "chapter": 3,
+      "type": "structure",
+      "name": "Streams",
+      "desc": "Lazy evaluation, stream_tail as thunk, infinite streams",
+      "difficulty": 4,
+      "prerequisites": ["lists", "higher_order_functions", "state"],
+      "testable_patterns": [
+        "lazy_vs_eager_evaluation",
+        "thunk_evaluation_timing",
+        "infinite_stream_construction",
+        "stream_forcing_behavior"
+      ],
+      "common_errors": [
+        "assumes_eager_evaluation",
+        "forces_entire_stream_unnecessarily",
+        "confuses_stream_with_list",
+        "incorrect_thunk_construction"
+      ]
+    },
+    {
+      "id": "pair_mutation",
+      "chapter": 3,
+      "type": "primitive",
+      "name": "Pair Mutation",
+      "desc": "set_head, set_tail, structural sharing",
+      "difficulty": 4,
+      "prerequisites": ["pairs", "state", "list_library"],
+      "testable_patterns": [
+        "mutation_effect_on_shared_structure",
+        "structural_sharing_identification",
+        "mutation_vs_reconstruction"
+      ],
+      "common_errors": [
+        "assumes_mutation_creates_copy",
+        "incorrect_sharing_analysis",
+        "forgets_append_shares_second_list"
+      ]
+    },
+    {
+      "id": "memoization",
+      "chapter": 3,
+      "type": "concept",
+      "name": "Memoization",
+      "desc": "Caching function results, trading space for time",
+      "difficulty": 4,
+      "prerequisites": ["state", "higher_order_functions", "recursion"],
+      "testable_patterns": [
+        "memo_table_lookup",
+        "space_time_tradeoff",
+        "repeated_computation_elimination"
+      ],
+      "common_errors": [
+        "forgets_memo_requires_mutation",
+        "incorrect_cache_key_generation",
+        "assumes_memoization_always_beneficial"
+      ]
+    },
+    {
+      "id": "cse_machine",
+      "chapter": 4,
+      "type": "concept",
+      "name": "CSE Machine",
+      "desc": "Control, Stash, Environment components",
+      "difficulty": 5,
+      "prerequisites": ["environment_model", "recursion_process"],
+      "testable_patterns": [
+        "control_stack_tracking",
+        "stash_value_management",
+        "instruction_sequence_execution"
+      ],
+      "common_errors": [
+        "confuses_control_with_stash",
+        "incorrect_instruction_ordering",
+        "wrong_environment_lookup"
+      ]
+    },
+    {
+      "id": "metacircular",
+      "chapter": 4,
+      "type": "concept",
+      "name": "Metacircular Evaluator",
+      "desc": "Interpreter implementation, Parse Trees, eval/apply",
+      "difficulty": 5,
+      "prerequisites": ["environment_model", "higher_order_functions"],
+      "testable_patterns": [
+        "eval_apply_cycle",
+        "parse_tree_structure",
+        "special_form_handling"
+      ],
+      "common_errors": [
+        "confuses_meta_vs_object_level",
+        "incorrect_environment_extension",
+        "wrong_special_form_evaluation_order"
+      ]
+    },
+    {
+      "id": "continuation_passing",
+      "chapter": 4,
+      "type": "concept",
+      "name": "Continuation Passing Style",
+      "desc": "CPS transformation, converting recursive to iterative",
+      "difficulty": 5,
+      "prerequisites": ["recursion_process", "iterative_process", "higher_order_functions"],
+      "testable_patterns": [
+        "cps_transformation",
+        "continuation_composition",
+        "deferred_operation_encoding"
+      ],
+      "common_errors": [
+        "incorrect_continuation_threading",
+        "loses_deferred_operations",
+        "wrong_base_case_continuation"
+      ]
+    }
+  ],
+
+  "relationships": [
+    {
+      "source": "recursion",
+      "target": "recursion_process",
+      "type": "DIFFERENTIATES_INTO",
+      "weight": 1.0,
+      "composition_rule": "A recursive function CAN implement either recursive or iterative process"
+    },
+    {
+      "source": "recursion",
+      "target": "iterative_process",
+      "type": "DIFFERENTIATES_INTO",
+      "weight": 1.0,
+      "composition_rule": "Iterative process requires tail recursion pattern"
+    },
+    {
+      "source": "recursion_process",
+      "target": "orders_of_growth",
+      "type": "ANALYZED_BY",
+      "weight": 0.9,
+      "composition_rule": "Space complexity of recursive process equals deferred operation count"
+    },
+    {
+      "source": "iterative_process",
+      "target": "orders_of_growth",
+      "type": "ANALYZED_BY",
+      "weight": 0.9,
+      "composition_rule": "Space complexity of iterative process is O(1)"
+    },
+    {
+      "source": "sorting",
+      "target": "recurrence_relations",
+      "type": "ANALYZED_BY",
+      "weight": 1.0,
+      "composition_rule": "Merge sort -> T(n) = 2T(n/2) + O(n) -> O(n log n)"
+    },
+    {
+      "source": "sorting",
+      "target": "recursion_process",
+      "type": "EXEMPLIFIES",
+      "weight": 0.8,
+      "composition_rule": "Merge sort is recursive process; Selection sort can be iterative"
+    },
+    {
+      "source": "list_library",
+      "target": "higher_order_functions",
+      "type": "USES",
+      "weight": 1.0,
+      "composition_rule": "map/filter/accumulate take function arguments"
+    },
+    {
+      "source": "list_library",
+      "target": "recursion_process",
+      "type": "IMPLEMENTS_AS",
+      "weight": 0.9,
+      "composition_rule": "Standard library functions use recursive process"
+    },
+    {
+      "source": "streams",
+      "target": "higher_order_functions",
+      "type": "USES",
+      "weight": 1.0,
+      "composition_rule": "Stream operations take function arguments"
+    },
+    {
+      "source": "streams",
+      "target": "lists",
+      "type": "GENERALIZES",
+      "weight": 0.7,
+      "composition_rule": "Streams are lazy lists with delayed tail evaluation"
+    },
+    {
+      "source": "pair_mutation",
+      "target": "list_library",
+      "type": "MODIFIES",
+      "weight": 0.8,
+      "composition_rule": "Mutation affects shared structure from append"
+    },
+    {
+      "source": "environment_model",
+      "target": "scope_lexical",
+      "type": "FORMALIZES",
+      "weight": 1.0,
+      "composition_rule": "Environment frames implement lexical scoping"
+    },
+    {
+      "source": "loops",
+      "target": "environment_model",
+      "type": "CREATES_FRAMES_VIA",
+      "weight": 0.9,
+      "composition_rule": "Loop body block creates frame only if scan-non-empty"
+    },
+    {
+      "source": "arrays",
+      "target": "state",
+      "type": "REQUIRES",
+      "weight": 1.0,
+      "composition_rule": "Arrays support mutation operations"
+    },
+    {
+      "source": "memoization",
+      "target": "state",
+      "type": "REQUIRES",
+      "weight": 1.0,
+      "composition_rule": "Memoization requires mutable cache structure"
+    },
+    {
+      "source": "memoization",
+      "target": "recursion",
+      "type": "OPTIMIZES",
+      "weight": 0.9,
+      "composition_rule": "Memoization eliminates repeated recursive calls"
+    },
+    {
+      "source": "cse_machine",
+      "target": "environment_model",
+      "type": "IMPLEMENTS",
+      "weight": 1.0,
+      "composition_rule": "CSE E-component implements environment frames"
+    },
+    {
+      "source": "cse_machine",
+      "target": "recursion_process",
+      "type": "VISUALIZES",
+      "weight": 0.8,
+      "composition_rule": "Control stack shows deferred operations"
+    },
+    {
+      "source": "continuation_passing",
+      "target": "recursion_process",
+      "type": "TRANSFORMS",
+      "weight": 0.9,
+      "composition_rule": "CPS encodes deferred operations as continuations"
+    },
+    {
+      "source": "continuation_passing",
+      "target": "iterative_process",
+      "type": "CONVERTS_TO",
+      "weight": 0.9,
+      "composition_rule": "CPS transformation yields tail-recursive structure"
+    },
+    {
+      "source": "trees",
+      "target": "lists",
+      "type": "STRUCTURED_AS",
+      "weight": 0.7,
+      "composition_rule": "Trees are lists of subtrees"
+    },
+    {
+      "source": "trees",
+      "target": "recursion",
+      "type": "NATURALLY_USES",
+      "weight": 0.9,
+      "composition_rule": "Tree operations are naturally recursive (2+ recursive calls)"
+    }
+  ],
+
+  "composition_rules": [
+    {
+      "rule_id": "recursive_process_complexity",
+      "when": ["recursion_process", "orders_of_growth"],
+      "constraint": "Space complexity equals maximum deferred operation depth",
+      "validation": "Count stack frames or deferred operations"
+    },
+    {
+      "rule_id": "iterative_process_complexity",
+      "when": ["iterative_process", "orders_of_growth"],
+      "constraint": "Space complexity is O(1) regardless of input size",
+      "validation": "Verify tail call position"
+    },
+    {
+      "rule_id": "memoization_tradeoff",
+      "when": ["memoization", "recursion", "orders_of_growth"],
+      "constraint": "Memoization trades O(n) space for eliminating redundant calls",
+      "validation": "Check cache size vs call tree size"
+    },
+    {
+      "rule_id": "lazy_evaluation_timing",
+      "when": ["streams", "higher_order_functions"],
+      "constraint": "Stream operations create thunks; evaluation happens on stream_tail call",
+      "validation": "Trace when tail is forced"
+    },
+    {
+      "rule_id": "structural_sharing",
+      "when": ["list_library", "pair_mutation"],
+      "constraint": "append copies first list but shares second; mutation of second affects result",
+      "validation": "Check pointer equality"
+    },
+    {
+      "rule_id": "loop_frame_creation",
+      "when": ["loops", "environment_model"],
+      "constraint": "New frame created per iteration only if body has declarations",
+      "validation": "Scan body block for const/let/function"
+    },
+    {
+      "rule_id": "tree_recursion_branching",
+      "when": ["trees", "recursion", "orders_of_growth"],
+      "constraint": "Tree operations make 2+ recursive calls; typically exponential or O(n) depending on work",
+      "validation": "Count recursive calls and work per call"
+    },
+    {
+      "rule_id": "higher_order_closure",
+      "when": ["higher_order_functions", "scope_lexical"],
+      "constraint": "Returned functions capture lexical environment at creation time",
+      "validation": "Trace environment pointer in function object"
+    }
+  ],
+
+  "constraints": [
+    {
+      "feature": "lists",
+      "forbidden_before": 2,
+      "error": "List processing is not available until Chapter 2"
+    },
+    {
+      "feature": "state",
+      "forbidden_before": 3,
+      "error": "Variable assignment is not available until Chapter 3"
+    },
+    {
+      "feature": "loops",
+      "forbidden_before": 3,
+      "error": "Loops are not available until Chapter 3. Use recursion."
+    },
+    {
+      "feature": "arrays",
+      "forbidden_before": 3,
+      "error": "Arrays are not available until Chapter 3"
+    },
+    {
+      "feature": "streams",
+      "forbidden_before": 3,
+      "error": "Streams are not available until Chapter 3"
+    },
+    {
+      "feature": "pair_mutation",
+      "forbidden_before": 3,
+      "error": "set_head/set_tail are not available until Chapter 3"
+    },
+    {
+      "feature": "parsing",
+      "forbidden_before": 4,
+      "error": "Parser functions are not available until Chapter 4"
+    },
+    {
+      "feature": "memoization",
+      "forbidden_before": 3,
+      "error": "Memoization requires mutation (Chapter 3)"
+    }
+  ],
+
+  "difficulty_calibration": {
+    "trace_length_targets": {
+      "easy": {"min": 3, "max": 5, "description": "Simple linear trace"},
+      "medium": {"min": 6, "max": 10, "description": "Moderate branching or nesting"},
+      "hard": {"min": 11, "max": 20, "description": "Complex nested or tree recursion"},
+      "very_hard": {"min": 21, "max": 50, "description": "Deep recursion or multiple concepts"}
+    },
+    "concept_composition": {
+      "easy": {"count": 1, "description": "Single concept isolation"},
+      "medium": {"count": 2, "description": "Two related concepts"},
+      "hard": {"count": 3, "description": "Three concepts with interaction"},
+      "very_hard": {"count": 4, "description": "Four+ concepts or non-obvious interaction"}
+    },
+    "nesting_depth": {
+      "easy": {"max": 2, "description": "Shallow nesting"},
+      "medium": {"max": 4, "description": "Moderate nesting"},
+      "hard": {"max": 6, "description": "Deep nesting"},
+      "very_hard": {"max": 10, "description": "Very deep nesting"}
+    }
+  }
+}

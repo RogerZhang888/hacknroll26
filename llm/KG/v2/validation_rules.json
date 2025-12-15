@@ -1,0 +1,421 @@
+{
+  "meta": {
+    "version": "1.0",
+    "description": "Validation and composition rules that enable semantic checking of generated questions",
+    "purpose": "Bridge between static lookup and true inference engine"
+  },
+
+  "concept_composition_rules": [
+    {
+      "rule_id": "recursion_with_complexity",
+      "concepts": ["recursion", "orders_of_growth"],
+      "validates": "Complexity claim matches recursion structure",
+      "checks": [
+        {
+          "condition": "single_recursive_call AND constant_work",
+          "inferred_time": "O(depth)",
+          "inferred_space": "O(depth) if recursive process, O(1) if iterative"
+        },
+        {
+          "condition": "two_recursive_calls AND constant_work",
+          "inferred_time": "O(2^depth) or O(n) depending on structure",
+          "inferred_space": "O(depth)"
+        },
+        {
+          "condition": "single_recursive_call AND linear_work",
+          "inferred_time": "O(n * depth)",
+          "inferred_space": "O(depth)"
+        }
+      ]
+    },
+    {
+      "rule_id": "streams_with_hof",
+      "concepts": ["streams", "higher_order_functions"],
+      "validates": "Stream operations maintain laziness",
+      "checks": [
+        {
+          "condition": "stream_map used",
+          "required_pattern": "Tail wrapped in thunk: () => ...",
+          "creates": "1 pair at head evaluation",
+          "defers": "All tail computation"
+        },
+        {
+          "condition": "stream_filter used",
+          "required_pattern": "Search until match, wrap tail in thunk",
+          "complexity_warning": "May force multiple elements to find match"
+        }
+      ]
+    },
+    {
+      "rule_id": "mutation_with_structures",
+      "concepts": ["pair_mutation", "lists", "list_library"],
+      "validates": "Mutation effects on shared structure",
+      "checks": [
+        {
+          "condition": "append used then mutation on second list",
+          "effect": "Result is affected because second list is shared",
+          "correct_answer_pattern": "Shows mutation impact"
+        },
+        {
+          "condition": "reverse used then mutation on original",
+          "effect": "Result is NOT affected because reverse creates new structure",
+          "correct_answer_pattern": "No mutation impact"
+        }
+      ]
+    },
+    {
+      "rule_id": "environment_with_loops",
+      "concepts": ["loops", "environment_model"],
+      "validates": "Frame creation follows scan rules",
+      "checks": [
+        {
+          "condition": "loop_body_has_declarations",
+          "frame_creation": "New frame per iteration",
+          "formula": "1 (function) + n (iterations)"
+        },
+        {
+          "condition": "loop_body_scan_empty",
+          "frame_creation": "No frame per iteration",
+          "formula": "1 (function only)"
+        }
+      ]
+    },
+    {
+      "rule_id": "memoization_with_recursion",
+      "concepts": ["memoization", "recursion", "orders_of_growth"],
+      "validates": "Memoization changes complexity",
+      "checks": [
+        {
+          "condition": "recursive_function_with_overlapping_subproblems",
+          "without_memo": "Exponential time (e.g., O(2^n) for fib)",
+          "with_memo": "Linear time O(n)",
+          "space_cost": "O(n) for memo table"
+        }
+      ]
+    }
+  ],
+
+  "validation_patterns": {
+    "tail_recursion": {
+      "description": "Check if recursive call is in tail position",
+      "ast_pattern": "return <function_call>;",
+      "anti_pattern": "return <operation>(<function_call>);",
+      "validation_code": "def is_tail_recursive(ast_node):\n    if not isinstance(ast_node, ReturnStatement):\n        return False\n    return isinstance(ast_node.value, CallExpression) and \\\n           not_nested_in_operation(ast_node.value)",
+      "error_message": "Claimed iterative process but recursive call not in tail position"
+    },
+    "tree_recursion": {
+      "description": "Check if function has 2+ recursive calls",
+      "validation_code": "def is_tree_recursive(function_body):\n    recursive_calls = count_self_calls(function_body)\n    return recursive_calls >= 2",
+      "minimum_calls": 2,
+      "error_message": "Claimed tree recursion but found fewer than 2 recursive calls"
+    },
+    "stream_laziness": {
+      "description": "Check if stream tail is wrapped in thunk",
+      "ast_pattern": "pair(<head>, () => <tail_expression>)",
+      "anti_pattern": "pair(<head>, <direct_tail_expression>)",
+      "validation_code": "def is_lazy_stream(pair_construction):\n    tail_arg = pair_construction.args[1]\n    return isinstance(tail_arg, LambdaExpression) and \\\n           tail_arg.params == []",
+      "error_message": "Stream tail must be thunk (() => ...) for lazy evaluation"
+    },
+    "deferred_operation_count": {
+      "description": "Count pending operations at max recursion depth",
+      "method": "Trace execution and count operations waiting for recursive call return",
+      "validation_code": "def count_deferred_ops(trace):\n    max_depth = 0\n    for frame in trace.frames:\n        pending = count_pending_operations_in_frame(frame)\n        max_depth = max(max_depth, pending)\n    return max_depth",
+      "equals": "Space complexity for recursive process",
+      "error_message": "Space complexity claim doesn't match deferred operation count"
+    },
+    "scan_empty_block": {
+      "description": "Check if block has const/let/function declarations",
+      "validation_code": "def is_scan_empty(block):\n    for stmt in block.statements:\n        if isinstance(stmt, (ConstDeclaration, LetDeclaration, FunctionDeclaration)):\n            return False\n    return True",
+      "frame_creation": "No frame if scan-empty, frame if scan-non-empty",
+      "error_message": "Frame count doesn't match scan-empty analysis"
+    },
+    "structural_sharing": {
+      "description": "Identify which operations share structure",
+      "operations_that_share": [
+        {
+          "function": "append",
+          "shares": "second_list",
+          "copies": "first_list"
+        },
+        {
+          "function": "list constructor",
+          "shares": "nothing",
+          "copies": "creates new pairs"
+        }
+      ],
+      "validation_code": "def check_structural_sharing(operation, mutation_target):\n    if operation == 'append' and mutation_target == 'second_list':\n        return 'result_affected'\n    elif operation == 'append' and mutation_target == 'first_list':\n        return 'result_not_affected'\n    return 'unknown'",
+      "error_message": "Structural sharing analysis incorrect"
+    },
+    "complexity_type_matching": {
+      "description": "Ensure time and space are not confused",
+      "validation_code": "def validate_complexity_claim(question, answer):\n    if question.asks_about == 'space':\n        if answer.value == question.time_complexity:\n            return False, 'Gave time complexity instead of space'\n    if question.asks_about == 'time':\n        if answer.value == question.space_complexity:\n            return False, 'Gave space complexity instead of time'\n    return True, 'Correct complexity type'",
+      "common_error": "Students give time when asked for space",
+      "error_message": "Answer gives wrong complexity type"
+    }
+  },
+
+  "question_validity_rules": [
+    {
+      "rule_id": "answer_type_consistency",
+      "check": "All answer options (correct + distractors) must have same type",
+      "examples": {
+        "valid": "All numeric: [3, 4, 5, 6]",
+        "invalid": "Mixed types: [3, 'undefined', Error, 5]"
+      },
+      "exception": "Error can be mixed with other types for runtime error questions"
+    },
+    {
+      "rule_id": "distractor_distinctness",
+      "check": "No two distractors should have identical values",
+      "validation_code": "def check_distinctness(options):\n    return len(options) == len(set(options))"
+    },
+    {
+      "rule_id": "distractor_plausibility",
+      "check": "Each distractor must represent a known misconception",
+      "validation_code": "def validate_distractor(distractor, traps_db):\n    for trap in traps_db:\n        if distractor matches trap.pattern:\n            return True, trap.misconception\n    return False, 'No known misconception for this distractor'"
+    },
+    {
+      "rule_id": "correct_answer_derivable",
+      "check": "Correct answer must be computable from code/context",
+      "validation_code": "def verify_correct_answer(code, claimed_answer):\n    actual_result = run_interpreter(code)\n    return actual_result == claimed_answer"
+    },
+    {
+      "rule_id": "difficulty_calibration",
+      "check": "Question difficulty matches target based on metrics",
+      "metrics": [
+        {
+          "metric": "trace_length",
+          "easy": "3-5 steps",
+          "medium": "6-10 steps",
+          "hard": "11-20 steps"
+        },
+        {
+          "metric": "concept_count",
+          "easy": "1 concept",
+          "medium": "2 concepts",
+          "hard": "3+ concepts"
+        },
+        {
+          "metric": "nesting_depth",
+          "easy": "≤2 levels",
+          "medium": "3-4 levels",
+          "hard": "5+ levels"
+        }
+      ],
+      "validation_code": "def calibrate_difficulty(question):\n    scores = [\n        score_trace_length(question),\n        score_concept_count(question),\n        score_nesting_depth(question)\n    ]\n    return aggregate_difficulty(scores)"
+    },
+    {
+      "rule_id": "chapter_constraint_enforcement",
+      "check": "Question only uses features available in target chapter",
+      "validation_code": "def check_chapter_constraints(code, target_chapter):\n    forbidden_features = get_forbidden_features(target_chapter)\n    for feature in forbidden_features:\n        if feature_used_in(code, feature):\n            return False, f'{feature} not available in Chapter {target_chapter}'\n    return True, 'All constraints satisfied'"
+    },
+    {
+      "rule_id": "concept_pattern_matching",
+      "check": "Code actually demonstrates claimed concept",
+      "validation_code": "def verify_concept_presence(code, concept):\n    patterns = get_patterns_for_concept(concept)\n    for pattern in patterns:\n        if pattern_matches(code, pattern):\n            return True\n    return False",
+      "examples": {
+        "concept": "tree_recursion",
+        "required_pattern": "2+ recursive calls in function body",
+        "validation": "Count self-calls >= 2"
+      }
+    }
+  ],
+
+  "semantic_validators": {
+    "frame_counter": {
+      "description": "Count frames created during execution",
+      "inputs": ["code", "trace"],
+      "output": "integer frame count",
+      "logic": [
+        "1 frame for function definition",
+        "+1 per function call",
+        "+1 per block with declarations (scan-non-empty)",
+        "+0 per scan-empty block"
+      ],
+      "implementation_hint": "Use interpreter with frame tracking"
+    },
+    "pair_counter": {
+      "description": "Count pairs created during execution",
+      "inputs": ["code", "trace"],
+      "output": "integer pair count",
+      "logic": [
+        "+1 per pair() call",
+        "+n per list(n_elements)",
+        "+variable per map/filter/accumulate based on result"
+      ],
+      "implementation_hint": "Hook pair constructor in interpreter"
+    },
+    "complexity_analyzer": {
+      "description": "Derive complexity from code structure",
+      "inputs": ["function_ast"],
+      "outputs": {
+        "time_complexity": "Big-O notation",
+        "space_complexity": "Big-O notation",
+        "process_type": "recursive|iterative"
+      },
+      "logic": [
+        "Count recursive calls",
+        "Check tail call position",
+        "Measure work per call",
+        "Derive recurrence relation",
+        "Match to known patterns"
+      ],
+      "implementation_hint": "AST analysis + pattern matching"
+    },
+    "lazy_evaluator": {
+      "description": "Track when stream elements are forced",
+      "inputs": ["stream_code", "access_pattern"],
+      "output": "list of evaluation events with timestamps",
+      "logic": [
+        "Stream construction: evaluate head only",
+        "stream_tail call: force immediate tail thunk",
+        "stream_ref(s, n): force first n+1 elements"
+      ],
+      "implementation_hint": "Instrument thunk evaluation"
+    },
+    "structural_sharing_analyzer": {
+      "description": "Identify shared vs copied structure",
+      "inputs": ["operation", "operands"],
+      "output": "sharing graph",
+      "logic": [
+        "append(xs, ys): copies xs, shares ys",
+        "reverse(xs): creates new structure",
+        "mutation tracking: follow pointer equality"
+      ],
+      "implementation_hint": "Track object identity/pointers"
+    }
+  },
+
+  "inference_rules": {
+    "derive_space_from_process": {
+      "if": "process_type == 'iterative'",
+      "then": "space_complexity == 'O(1)'",
+      "unless": "result_size is O(n)"
+    },
+    "derive_space_from_deferred_ops": {
+      "if": "process_type == 'recursive'",
+      "then": "space_complexity == O(max_deferred_operations)"
+    },
+    "derive_time_from_recurrence": {
+      "if": "recurrence_matches_pattern(T_n)",
+      "then": "time_complexity == pattern.complexity"
+    },
+    "derive_process_from_tail_call": {
+      "if": "recursive_call_in_tail_position",
+      "then": "process_type == 'iterative'"
+    },
+    "derive_process_from_deferred_ops": {
+      "if": "has_deferred_operations",
+      "then": "process_type == 'recursive'"
+    },
+    "derive_laziness_from_thunk": {
+      "if": "tail_is_lambda_with_no_params",
+      "then": "evaluation_strategy == 'lazy'"
+    },
+    "derive_mutation_effect": {
+      "if": "structural_sharing(result, mutated_structure)",
+      "then": "mutation_affects_result == true"
+    }
+  },
+
+  "distractor_generation_templates": {
+    "off_by_one": {
+      "formula": "correct_answer ± 1",
+      "when_to_use": "Counting questions (frames, pairs, calls)",
+      "plausibility": "medium to high"
+    },
+    "swap_time_and_space": {
+      "formula": "Give space when asked for time, or vice versa",
+      "when_to_use": "Complexity questions",
+      "plausibility": "very high"
+    },
+    "eager_instead_of_lazy": {
+      "formula": "Simulate eager evaluation of lazy structure",
+      "when_to_use": "Stream questions, short-circuit operators",
+      "plausibility": "very high"
+    },
+    "wrong_scope": {
+      "formula": "Use value from wrong environment frame",
+      "when_to_use": "Environment model questions",
+      "plausibility": "high"
+    },
+    "confuse_similar_concepts": {
+      "formula": "Answer with related but distinct concept",
+      "examples": [
+        "recursive_function ↔ recursive_process",
+        "map ↔ filter ↔ accumulate",
+        "box_notation ↔ list_notation"
+      ],
+      "when_to_use": "Conceptual questions",
+      "plausibility": "very high"
+    },
+    "assume_mutation_creates_copy": {
+      "formula": "Answer as if operation creates defensive copy",
+      "when_to_use": "Structural sharing questions",
+      "plausibility": "very high"
+    },
+    "wrong_recurrence_pattern": {
+      "formula": "Match to similar but incorrect pattern",
+      "examples": [
+        "O(n log n) ↔ O(n)",
+        "O(2^n) ↔ O(n^2)"
+      ],
+      "when_to_use": "Recurrence relation questions",
+      "plausibility": "high"
+    }
+  },
+
+  "execution_verification": {
+    "interpreter_config": {
+      "tool": "js-slang",
+      "chapter_mapping": {
+        "1": "source_1",
+        "2": "source_2",
+        "3": "source_3",
+        "4": "source_4"
+      },
+      "timeout": "5 seconds",
+      "memory_limit": "100MB"
+    },
+    "verification_workflow": [
+      {
+        "step": 1,
+        "action": "Generate question with code",
+        "output": "question_spec"
+      },
+      {
+        "step": 2,
+        "action": "Run code in interpreter",
+        "output": "execution_trace"
+      },
+      {
+        "step": 3,
+        "action": "Extract metrics from trace",
+        "metrics": ["output_value", "frame_count", "pair_count", "step_count"]
+      },
+      {
+        "step": 4,
+        "action": "Validate claimed answer against actual result",
+        "validation": "claimed_answer == execution_trace.output"
+      },
+      {
+        "step": 5,
+        "action": "Validate difficulty calibration",
+        "validation": "step_count within expected range for difficulty"
+      },
+      {
+        "step": 6,
+        "action": "Validate concept presence",
+        "validation": "AST contains required patterns for concept"
+      }
+    ],
+    "rejection_criteria": [
+      "Interpreter error (syntax/runtime)",
+      "Claimed answer != actual output",
+      "Difficulty mismatch (too easy/hard)",
+      "Concept pattern missing",
+      "Chapter constraint violated",
+      "Distractor quality too low"
+    ]
+  }
+}
