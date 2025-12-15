@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Defines the legal syntax, concepts, and algorithms for each Source chapter."
+    "description": "Defines the legal syntax, concepts, algorithms, and their relationships for the Graph Walker."
   },
   "topics": [
     { "id": "basics", "chapter": 1, "type": "syntax", "desc": "const, function, if-else, blocks, lambda" },
@@ -9,12 +9,10 @@
     { "id": "recursion_process", "chapter": 1, "type": "concept", "desc": "Recursive vs Iterative Process (Deferred Operations)" },
     { "id": "substitution_model", "chapter": 1, "type": "concept", "desc": "Applicative Order, Lambda Evaluation" },
     { "id": "math_library", "chapter": 1, "type": "library", "desc": "math_sqrt, math_PI, math_sin, etc." },
-    { "id": "primitive_predicates", "chapter": 1, "type": "library", "desc": "is_number, is_boolean, is_string, is_function" },
-    { "id": "misc_library", "chapter": 1, "type": "library", "desc": "get_time, parse_int, prompt, display, error" },
-
+    
     { "id": "pairs", "chapter": 2, "type": "structure", "desc": "pair, head, tail, is_pair, is_null" },
     { "id": "lists", "chapter": 2, "type": "structure", "desc": "list(), null, Box Notation vs List Notation" },
-    { "id": "list_library", "chapter": 2, "type": "library", "desc": "map, filter, accumulate, append, reverse, member, remove, length, list_ref, build_list, enum_list" },
+    { "id": "list_library", "chapter": 2, "type": "library", "desc": "map, filter, accumulate, append, reverse, member, remove" },
     { "id": "trees", "chapter": 2, "type": "structure", "desc": "Binary Trees, BSTs, Tree Traversal" },
     { "id": "sorting", "chapter": 2, "type": "algorithm", "desc": "Insertion, Selection, Merge, Quicksort" },
     { "id": "strings", "chapter": 2, "type": "primitive", "desc": "Strings allowed as data" },
@@ -30,6 +28,19 @@
     { "id": "cse_machine", "chapter": 4, "type": "concept", "desc": "Control, Stash, Environment components" },
     { "id": "continuation_passing", "chapter": 4, "type": "concept", "desc": "CPS transformation" },
     { "id": "interpreter_library", "chapter": 4, "type": "library", "desc": "parse, tokenize, apply_in_underlying_javascript" }
+  ],
+  "relationships": [
+    { "source": "merge_sort", "target": "recurrence_relations", "type": "ANALYZED_BY" },
+    { "source": "merge_sort", "target": "recursion_process", "type": "EXEMPLIFIES" },
+    { "source": "accumulate", "target": "recursion_process", "type": "EXEMPLIFIES" },
+    { "source": "accumulate", "target": "list_library", "type": "MEMBER_OF" },
+    { "source": "stream_map", "target": "streams", "type": "OPERATES_ON" },
+    { "source": "stream_tail", "target": "streams", "type": "FUNDAMENTAL_OP" },
+    { "source": "loops", "target": "environment_model", "type": "MODIFIES" },
+    { "source": "arrays", "target": "state", "type": "REQUIRES" },
+    { "source": "pair_mutation", "target": "state", "type": "REQUIRES" },
+    { "source": "cse_machine", "target": "environment_model", "type": "IMPLEMENTS" },
+    { "source": "cse_machine", "target": "recursion_process", "type": "VISUALIZES" }
   ],
   "constraints": [
     { "feature": "lists", "forbidden_before": 2, "error": "List processing is not available until Source §2." },
