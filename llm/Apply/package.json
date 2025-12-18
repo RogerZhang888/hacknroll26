@@ -1,0 +1,12 @@
+{
+  "name": "cs1101s-question-generator",
+  "version": "1.0.0",
+  "description": "Source interpreter integration for question generation",
+  "type": "module",
+  "scripts": {
+    "test": "node test_interpreter.js"
+  },
+  "dependencies": {
+    "js-slang": "^1.0.0"
+  }
+}
