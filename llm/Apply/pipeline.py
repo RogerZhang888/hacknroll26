@@ -25,7 +25,11 @@ class QuestionPipeline:
         Initialize the pipeline
         
         Args:
-            config: Optional configuration dict
+            config: Optional configuration dict with keys:
+                - provider: "openai" or "google"
+                - model: Model name
+                - api_key: API key
+                - temperature: Generation temperature
         """
         self.config = config or {}
         
@@ -33,13 +37,13 @@ class QuestionPipeline:
         self.interpreter = SourceInterpreter()
         self.concept_selector = ConceptSelector()
         self.code_generator = CodeGenerator(
-            api_key=self.config.get('openai_api_key')
+            llm_config=self.config
         )
         self.code_validator = CodeValidator()
         self.question_validator = QuestionValidator()
         self.distractor_computer = DistractorComputer()
         self.question_generator = QuestionGenerator(
-            api_key=self.config.get('openai_api_key')
+            llm_config=self.config
         )
         
         # Load traps
@@ -84,7 +88,7 @@ class QuestionPipeline:
     
     def generate_one_question(
         self,
-        chapter: int = 2,
+        chapter: int = 3,
         difficulty: str = "medium",
         max_retries: int = 3,
         verbose: bool = True
@@ -261,7 +265,7 @@ class QuestionPipeline:
     def generate_batch(
         self,
         num_questions: int = 10,
-        chapter: int = 2,
+        chapter: int = 3,
         difficulty: str = "medium",
         output_file: Optional[str] = None
     ) -> list:
@@ -339,7 +343,7 @@ def demo():
     
     # Generate one question
     question = pipeline.generate_one_question(
-        chapter=2,
+        chapter=3,
         difficulty="medium",
         verbose=True
     )

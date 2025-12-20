@@ -1,1 +1,11 @@
-numpy==2.3.5
+# CS1101S Question Generator - Python Dependencies
+
+# LLM Providers
+google-genai>=0.2.0          # For Gemini models (NEW SDK)
+openai>=1.0.0                 # For GPT models (optional)
+
+# Environment management
+python-dotenv>=1.0.0          # For .env file support
+
+# Optional but recommended
+requests>=2.31.0              # HTTP requests

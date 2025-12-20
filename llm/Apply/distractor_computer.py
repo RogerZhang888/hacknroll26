@@ -1,25 +1,24 @@
 """
-Distractor Computer
-Generates plausible wrong answers based on trap strategies
+Smart Distractor Generator
+Generates type-aware, pedagogically meaningful wrong answers
 """
 
 import json
-from typing import List, Dict, Any
+import random
+from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 
 class DistractorComputer:
     """
-    Computes distractors (wrong answers) based on trap formulas
+    Type-aware distractor generation with:
+    1. List-specific distractors
+    2. Complexity-based distractors
+    3. Process-type confusion
+    4. Metadata-informed generation
     """
     
     def __init__(self, traps_path: str = "traps.json"):
-        """
-        Initialize with trap strategies
-        
-        Args:
-            traps_path: Path to traps.json
-        """
         traps_file = Path(__file__).parent / traps_path
         
         with open(traps_file, 'r') as f:
@@ -27,257 +26,404 @@ class DistractorComputer:
         
         self.traps = {trap['concept']: trap for trap in self.traps_data['traps']}
     
-    def get_trap(self, concept: str) -> Dict[str, Any]:
-        """Get trap strategy for a concept"""
-        return self.traps.get(concept, {})
+    def _parse_list_structure(self, value: Any) -> Optional[List]:
+        """
+        Parse a list from string representation or native structure
+        
+        Examples:
+        "[1, [2, [3, null]]]" -> [1, 2, 3]
+        {"head": 1, "tail": {"head": 2, ...}} -> [1, 2, ...]
+        """
+        if isinstance(value, str):
+            # Try to evaluate as Python-like structure
+            # Convert Source list notation to Python
+            try:
+                # Simple parsing: [1, [2, [3, null]]] -> [1, 2, 3]
+                elements = []
+                s = value.strip()
+                
+                # Count depth
+                depth = 0
+                current_elem = ""
+                
+                for char in s:
+                    if char == '[':
+                        depth += 1
+                        if depth == 1:
+                            continue
+                    elif char == ']':
+                        depth -= 1
+                        if depth == 0:
+                            if current_elem.strip() and current_elem.strip() != 'null':
+                                try:
+                                    elements.append(int(current_elem.strip()))
+                                except ValueError:
+                                    elements.append(current_elem.strip())
+                            break
+                    elif char == ',' and depth == 1:
+                        if current_elem.strip() and current_elem.strip() != 'null':
+                            try:
+                                elements.append(int(current_elem.strip()))
+                            except ValueError:
+                                elements.append(current_elem.strip())
+                        current_elem = ""
+                        continue
+                    
+                    if depth >= 1:
+                        current_elem += char
+                
+                return elements if elements else None
+                
+            except:
+                return None
+        
+        elif isinstance(value, (list, tuple)):
+            return list(value)
+        
+        elif isinstance(value, dict):
+            # Parse Source pair structure {"head": 1, "tail": {...}}
+            elements = []
+            current = value
+            while isinstance(current, dict) and "head" in current:
+                elements.append(current["head"])
+                current = current.get("tail")
+                if current is None or (isinstance(current, str) and current == "null"):
+                    break
+            return elements if elements else None
+        
+        return None
     
-    def compute_off_by_one(self, value: Any) -> List[Any]:
+    def _list_to_source(self, elements: List) -> str:
+        """Convert Python list to Source list notation"""
+        if not elements:
+            return "null"
+        
+        # Build nested pair notation
+        result = "null"
+        for elem in reversed(elements):
+            result = f"[{elem}, {result}]"
+        return result
+    
+    def generate_list_distractors(
+        self,
+        correct_list: List,
+        concept: str,
+        ground_truth: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """
-        Generate off-by-one distractors
+        Generate plausible wrong lists based on common mistakes
         
-        Args:
-            value: The correct answer (numeric)
-        
-        Returns:
-            List of distractors (value+1, value-1)
+        Strategies:
+        1. Off-by-one length (missing first/last element)
+        2. Wrong order (reversed, partially sorted)
+        3. Wrong values (off-by-one on elements)
+        4. Wrong structure (improper list, nested incorrectly)
         """
-        if not isinstance(value, (int, float)):
-            return []
-        
         distractors = []
         
-        # +1
-        distractors.append(value + 1)
+        # Strategy 1: Missing elements (off-by-one length)
+        if len(correct_list) > 1:
+            # Missing last element
+            distractors.append({
+                'value': self._list_to_source(correct_list[:-1]),
+                'misconception': 'off_by_one_length_short',
+                'explanation': 'Forgot to process last element'
+            })
         
-        # -1 (only if result is non-negative for counts)
-        if value > 0:
-            distractors.append(value - 1)
+        if len(correct_list) > 0:
+            # Missing first element
+            distractors.append({
+                'value': self._list_to_source(correct_list[1:]),
+                'misconception': 'off_by_one_length_skip_first',
+                'explanation': 'Started from tail instead of head'
+            })
+        
+        # Strategy 2: Wrong order
+        if len(correct_list) >= 2:
+            # Reversed
+            distractors.append({
+                'value': self._list_to_source(list(reversed(correct_list))),
+                'misconception': 'reversed_order',
+                'explanation': 'Accumulated in wrong order'
+            })
+        
+        # Strategy 3: Element transformation errors
+        if len(correct_list) > 0 and all(isinstance(x, int) for x in correct_list):
+            # Off-by-one on all elements
+            if concept in ['map', 'list_library', 'lists']:
+                wrong_elements = [x + 1 for x in correct_list]
+                distractors.append({
+                    'value': self._list_to_source(wrong_elements),
+                    'misconception': 'wrong_transformation',
+                    'explanation': 'Applied wrong function to elements'
+                })
+            
+            # Partial transformation (only first element)
+            if len(correct_list) > 1:
+                partial = [correct_list[0] * 2] + correct_list[1:]
+                distractors.append({
+                    'value': self._list_to_source(partial),
+                    'misconception': 'partial_application',
+                    'explanation': 'Only transformed first element'
+                })
+        
+        # Strategy 4: Structure confusion
+        if len(correct_list) >= 2:
+            # Extra nesting
+            nested = [correct_list]
+            distractors.append({
+                'value': self._list_to_source(nested),
+                'misconception': 'extra_nesting',
+                'explanation': 'Wrapped result in extra list'
+            })
+        
+        # Strategy 5: Pair count confusion
+        pair_count = ground_truth.get('pairs', 0)
+        if pair_count > len(correct_list):
+            # Used pairs but made too many
+            extended = correct_list + [0] * (pair_count - len(correct_list))
+            distractors.append({
+                'value': self._list_to_source(extended),
+                'misconception': 'pair_count_confusion',
+                'explanation': f'Created {pair_count} pairs instead of {len(correct_list)}'
+            })
         
         return distractors
     
-    def compute_complexity_confusion(self, correct_complexity: str) -> List[str]:
-        """
-        Generate common complexity confusion distractors
-        
-        Args:
-            correct_complexity: The correct complexity (e.g., "O(n)")
-        
-        Returns:
-            List of plausible wrong complexities
-        """
-        confusion_map = {
-            "O(1)": ["O(n)", "O(log n)"],
-            "O(log n)": ["O(1)", "O(n)"],
-            "O(n)": ["O(n^2)", "O(n log n)", "O(1)"],
-            "O(n log n)": ["O(n)", "O(n^2)"],
-            "O(n^2)": ["O(n)", "O(2^n)"],
-            "O(2^n)": ["O(n^2)", "O(n)"]
-        }
-        
-        return confusion_map.get(correct_complexity, ["O(n)", "O(n^2)"])
-    
-    def compute_process_confusion(self, correct_process: str) -> List[str]:
-        """
-        Generate process type confusion distractors
-        
-        Args:
-            correct_process: "recursive" or "iterative"
-        
-        Returns:
-            List with opposite process type
-        """
-        if correct_process.lower() == "recursive":
-            return ["Iterative Process"]
-        else:
-            return ["Recursive Process"]
-    
-    def compute_from_formula(
-        self, 
-        formula: str, 
-        ground_truth: Dict[str, Any]
-    ) -> Any:
-        """
-        Compute distractor value from a formula
-        
-        Args:
-            formula: Formula string (e.g., "correct + 1")
-            ground_truth: Dictionary with values like {"output": 5, "pairs": 3}
-        
-        Returns:
-            Computed distractor value
-        """
-        # Simple formula evaluation
-        # Replace placeholders
-        expr = formula
-        
-        # Replace "correct" with actual value
-        if "output" in ground_truth:
-            expr = expr.replace("correct", str(ground_truth["output"]))
-        
-        # Replace other placeholders
-        for key, value in ground_truth.items():
-            expr = expr.replace(key, str(value))
-        
-        try:
-            # Safely evaluate (only allow basic arithmetic)
-            # Use a restricted eval
-            allowed_ops = {
-                'add': lambda a, b: a + b,
-                'sub': lambda a, b: a - b,
-                'mul': lambda a, b: a * b,
-                'div': lambda a, b: a / b if b != 0 else 0,
-            }
-            
-            # Simple parsing (replace operators)
-            expr = expr.replace('+', ' + ')
-            expr = expr.replace('-', ' - ')
-            expr = expr.replace('*', ' * ')
-            expr = expr.replace('/', ' / ')
-            
-            # Evaluate (this is simplified; for production use a proper parser)
-            result = eval(expr, {"__builtins__": {}}, {})
-            return result
-            
-        except:
-            # If formula eval fails, return None
-            return None
-    
-    def generate_distractors(
+    def generate_numeric_distractors(
         self,
-        trap: Dict[str, Any],
-        ground_truth: Dict[str, Any],
-        num_distractors: int = 3
+        correct_value: int,
+        concept: str,
+        ground_truth: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """
-        Generate distractors based on trap strategy
-        
-        Args:
-            trap: Trap strategy dictionary
-            ground_truth: Ground truth values from interpreter
-            num_distractors: Number of distractors to generate
-        
-        Returns:
-            List of distractor dictionaries with 'value' and 'misconception'
-        """
+        """Generate numeric distractors"""
         distractors = []
         
-        # Get distractor generation specs from trap
-        trap_strategy = trap.get('strategy', {})
-        distractor_specs = trap_strategy.get('distractor_logic', [])
-        
-        # If trap has explicit distractor specs, use them
-        if isinstance(distractor_specs, list):
-            for spec in distractor_specs[:num_distractors]:
-                if isinstance(spec, str):
-                    # Simple string distractor
-                    distractors.append({
-                        'value': spec,
-                        'misconception': 'common_error'
-                    })
-        
-        # Fallback: generate generic distractors
-        if len(distractors) < num_distractors:
-            # Try off-by-one
-            if 'output' in ground_truth:
-                correct = ground_truth['output']
-                
-                if isinstance(correct, (int, float)):
-                    off_by_one = self.compute_off_by_one(correct)
-                    for obo in off_by_one:
-                        if len(distractors) < num_distractors:
-                            distractors.append({
-                                'value': obo,
-                                'misconception': 'off_by_one_error'
-                            })
-        
-        # Fill remaining with None or "Error" if needed
-        while len(distractors) < num_distractors:
+        # Off-by-one (classic)
+        if correct_value > 0:
             distractors.append({
-                'value': 'Error',
-                'misconception': 'runtime_error_assumption'
+                'value': correct_value - 1,
+                'misconception': 'off_by_one_minus',
+                'explanation': 'Base case or loop condition off by one'
             })
         
-        return distractors[:num_distractors]
+        distractors.append({
+            'value': correct_value + 1,
+            'misconception': 'off_by_one_plus',
+            'explanation': 'Counted one extra iteration'
+        })
+        
+        # Factorial-specific: n-1 factorial
+        if 'factorial' in str(ground_truth).lower() and correct_value > 1:
+            distractors.append({
+                'value': correct_value // (correct_value // 24 + 1),  # Rough approximation
+                'misconception': 'wrong_input',
+                'explanation': 'Computed factorial(n-1) instead of factorial(n)'
+            })
+        
+        # Fibonacci-specific patterns
+        if 'fibonacci' in concept.lower():
+            distractors.append({
+                'value': correct_value - 1,
+                'misconception': 'missed_base_case',
+                'explanation': 'Incorrect base case handling'
+            })
+        
+        # Recursion depth confusion (if pairs involved)
+        pairs = ground_truth.get('pairs', 0)
+        if pairs > 0 and pairs != correct_value:
+            distractors.append({
+                'value': pairs,
+                'misconception': 'confused_with_pair_count',
+                'explanation': f'Confused result ({correct_value}) with pairs created ({pairs})'
+            })
+        
+        return distractors
+    
+    def generate_complexity_distractors(
+        self,
+        correct_complexity: str
+    ) -> List[Dict[str, Any]]:
+        """Generate complexity confusion distractors"""
+        confusion_map = {
+            "O(1)": [
+                {"value": "O(n)", "misconception": "assumes_linear_scan"},
+                {"value": "O(log n)", "misconception": "confuses_with_binary_search"}
+            ],
+            "O(log n)": [
+                {"value": "O(1)", "misconception": "thinks_constant_time"},
+                {"value": "O(n)", "misconception": "confuses_with_linear"}
+            ],
+            "O(n)": [
+                {"value": "O(n^2)", "misconception": "sees_nested_structure"},
+                {"value": "O(log n)", "misconception": "thinks_dividing"},
+                {"value": "O(1)", "misconception": "ignores_recursion_depth"}
+            ],
+            "O(n log n)": [
+                {"value": "O(n^2)", "misconception": "wrong_merge_cost"},
+                {"value": "O(n)", "misconception": "ignores_depth"}
+            ],
+            "O(n^2)": [
+                {"value": "O(n)", "misconception": "miscounts_nested_loop"},
+                {"value": "O(n log n)", "misconception": "assumes_divide_conquer"}
+            ],
+            "O(2^n)": [
+                {"value": "O(n^2)", "misconception": "polynomial_exponential_confusion"},
+                {"value": "O(n)", "misconception": "ignores_branching"}
+            ]
+        }
+        
+        return confusion_map.get(correct_complexity, [
+            {"value": "O(n)", "misconception": "default_guess"},
+            {"value": "O(n^2)", "misconception": "default_guess_2"}
+        ])
     
     def generate_smart_distractors(
         self,
         concept: str,
         correct_answer: Any,
-        ground_truth: Dict[str, Any]
+        ground_truth: Dict[str, Any],
+        num_distractors: int = 3
     ) -> List[Dict[str, Any]]:
         """
-        Generate smart distractors for a specific concept
-        
-        Args:
-            concept: Concept ID being tested
-            correct_answer: The correct answer value
-            ground_truth: Full ground truth from interpreter
-        
-        Returns:
-            List of 3 distractors
+        Main entry point: generate type-aware distractors
         """
         distractors = []
         
-        # Off-by-one (always include for numeric answers)
-        if isinstance(correct_answer, (int, float)):
-            if correct_answer > 0:
-                distractors.append({
-                    'value': correct_answer - 1,
-                    'misconception': 'off_by_one_minus'
+        # Detect answer type and generate accordingly
+        
+        # 1. COMPLEXITY ANSWERS (O(n), O(n^2), etc.)
+        if isinstance(correct_answer, str) and correct_answer.startswith("O("):
+            distractors = self.generate_complexity_distractors(correct_answer)
+        
+        # 2. LIST ANSWERS
+        elif isinstance(correct_answer, str) and ('[' in correct_answer or 'null' in correct_answer):
+            # Parse list structure
+            parsed_list = self._parse_list_structure(correct_answer)
+            
+            if parsed_list is not None:
+                distractors = self.generate_list_distractors(
+                    parsed_list, concept, ground_truth
+                )
+            else:
+                # Couldn't parse, generate generic
+                distractors = [
+                    {'value': 'null', 'misconception': 'empty_result'},
+                    {'value': '[' + correct_answer.replace('[', '').replace(']', '') + ']', 
+                     'misconception': 'wrong_nesting'},
+                ]
+        
+        # 3. NUMERIC ANSWERS
+        elif isinstance(correct_answer, (int, float)):
+            distractors = self.generate_numeric_distractors(
+                int(correct_answer), concept, ground_truth
+            )
+        
+        # 4. BOOLEAN ANSWERS
+        elif isinstance(correct_answer, bool):
+            distractors = [
+                {'value': not correct_answer, 'misconception': 'wrong_predicate'},
+                {'value': None, 'misconception': 'undefined_result'}
+            ]
+        
+        # 5. PROCESS TYPE ANSWERS
+        elif isinstance(correct_answer, str) and 'process' in correct_answer.lower():
+            opposite = "Iterative Process" if "recursive" in correct_answer.lower() else "Recursive Process"
+            distractors = [
+                {'value': opposite, 'misconception': 'process_type_confusion'},
+                {'value': "O(n) Space", 'misconception': 'confuses_process_with_complexity'}
+            ]
+        
+        # 6. FALLBACK for unknown types
+        else:
+            distractors = [
+                {'value': 'Error', 'misconception': 'assumes_runtime_error'},
+                {'value': 'undefined', 'misconception': 'undefined_behavior'},
+                {'value': str(correct_answer) + "_modified", 'misconception': 'generic_error'}
+            ]
+        
+        # Deduplicate and ensure variety
+        seen_values = {correct_answer}
+        unique_distractors = []
+        
+        for d in distractors:
+            val = d['value']
+            if val not in seen_values:
+                seen_values.add(val)
+                unique_distractors.append(d)
+        
+        # If not enough unique distractors, add more generic ones
+        while len(unique_distractors) < num_distractors:
+            if isinstance(correct_answer, int):
+                # Add more numeric variations
+                new_val = correct_answer + random.choice([-2, 2, -3, 3])
+                if new_val not in seen_values and new_val >= 0:
+                    unique_distractors.append({
+                        'value': new_val,
+                        'misconception': 'arithmetic_error'
+                    })
+                    seen_values.add(new_val)
+            else:
+                # Generic fallback
+                unique_distractors.append({
+                    'value': 'undefined',
+                    'misconception': 'generic_error'
                 })
-            distractors.append({
-                'value': correct_answer + 1,
-                'misconception': 'off_by_one_plus'
-            })
+                break
         
-        # Concept-specific distractors
-        if concept in ['recursion_process', 'iterative_process']:
-            # Complexity confusion
-            if len(distractors) < 3:
-                distractors.append({
-                    'value': 'O(1)' if correct_answer == 'O(n)' else 'O(n)',
-                    'misconception': 'complexity_confusion'
-                })
-        
-        # Fill to 3 distractors
-        while len(distractors) < 3:
-            distractors.append({
-                'value': 'undefined',
-                'misconception': 'incorrect_evaluation'
-            })
-        
-        return distractors[:3]
+        return unique_distractors[:num_distractors]
 
 
 def demo():
-    """Demonstrate distractor computation"""
-    print("=== Distractor Computation Demo ===\n")
+    """Test smart distractor generation"""
+    print("=== Smart Distractor Generation Demo ===\n")
     
     computer = DistractorComputer()
     
-    # Test 1: Off-by-one
-    print("Test 1: Off-by-one distractors")
-    correct = 5
-    obo = computer.compute_off_by_one(correct)
-    print(f"  Correct: {correct}")
-    print(f"  Off-by-one: {obo}\n")
+    # Test 1: List answer
+    print("Test 1: List answer")
+    list_answer = "[1, [2, [3, [4, null]]]]"
+    ground_truth = {"output": list_answer, "pairs": 4}
     
-    # Test 2: Complexity confusion
-    print("Test 2: Complexity confusion")
-    correct_complexity = "O(n)"
-    confusion = computer.compute_complexity_confusion(correct_complexity)
-    print(f"  Correct: {correct_complexity}")
-    print(f"  Confusions: {confusion}\n")
-    
-    # Test 3: Smart distractors
-    print("Test 3: Smart distractors")
-    ground_truth = {"output": 120, "pairs": 5}
     distractors = computer.generate_smart_distractors(
-        "recursion",
-        correct_answer=120,
+        concept="lists",
+        correct_answer=list_answer,
         ground_truth=ground_truth
     )
-    print(f"  Correct: 120")
+    
+    print(f"  Correct: {list_answer}")
+    print("  Distractors:")
+    for d in distractors:
+        print(f"    {d['value']} ({d['misconception']})")
+    
+    # Test 2: Numeric answer
+    print("\nTest 2: Numeric answer")
+    numeric_answer = 120
+    ground_truth = {"output": 120, "pairs": 5}
+    
+    distractors = computer.generate_smart_distractors(
+        concept="recursion",
+        correct_answer=numeric_answer,
+        ground_truth=ground_truth
+    )
+    
+    print(f"  Correct: {numeric_answer}")
+    print("  Distractors:")
+    for d in distractors:
+        print(f"    {d['value']} ({d['misconception']})")
+    
+    # Test 3: Complexity answer
+    print("\nTest 3: Complexity answer")
+    complexity_answer = "O(n)"
+    ground_truth = {"output": "O(n)"}
+    
+    distractors = computer.generate_smart_distractors(
+        concept="orders_of_growth",
+        correct_answer=complexity_answer,
+        ground_truth=ground_truth
+    )
+    
+    print(f"  Correct: {complexity_answer}")
     print("  Distractors:")
     for d in distractors:
         print(f"    {d['value']} ({d['misconception']})")

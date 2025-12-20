@@ -5,6 +5,7 @@ Generates the final question text using LLM, matching style of past papers
 
 import os
 from typing import List, Dict, Any, Optional
+from llm_client import LLMClient
 
 
 class QuestionGenerator:
@@ -12,17 +13,17 @@ class QuestionGenerator:
     Generates complete question text with multiple choice options
     """
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, llm_config: Optional[Dict[str, Any]] = None):
         """
         Initialize question generator
         
         Args:
-            api_key: OpenAI API key (or set OPENAI_API_KEY env var)
+            llm_config: Optional LLM configuration dict
         """
-        self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
+        self.llm = LLMClient(llm_config)
         
-        if not self.api_key:
-            print("Warning: No OpenAI API key found. Using template-based generation.")
+        if not self.llm.is_available():
+            print("Warning: No LLM API available. Using template-based generation.")
     
     def _build_question_prompt(
         self,
@@ -100,7 +101,7 @@ Output ONLY the formatted question.
         concepts: List[str],
         correct_answer: Any,
         distractors: List[Dict[str, Any]],
-        model: str = "gpt-4"
+        model: str = None
     ) -> str:
         """
         Generate complete question text
@@ -110,12 +111,12 @@ Output ONLY the formatted question.
             concepts: Concepts being tested
             correct_answer: Correct answer value
             distractors: List of distractor dictionaries
-            model: OpenAI model to use
+            model: Optional model override
         
         Returns:
             Complete formatted question as string
         """
-        if not self.api_key:
+        if not self.llm.is_available():
             # Fallback to template-based generation
             return self._generate_template_question(
                 code, concepts, correct_answer, distractors
@@ -126,37 +127,20 @@ Output ONLY the formatted question.
             code, concepts, correct_answer, distractors
         )
         
+        system_prompt = "You are a CS1101S exam writer. Generate clear, concise questions."
+        
         try:
-            from openai import OpenAI
-            
-            client = OpenAI(api_key=self.api_key)
-            
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a CS1101S exam writer. Generate clear, concise questions."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=500
+            question_text = self.llm.generate(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                max_tokens=500,
+                temperature=0.7
             )
             
-            question_text = response.choices[0].message.content.strip()
-            return question_text
+            return question_text.strip()
             
-        except ImportError:
-            print("Error: openai package not installed")
-            return self._generate_template_question(
-                code, concepts, correct_answer, distractors
-            )
         except Exception as e:
-            print(f"Error calling OpenAI API: {e}")
+            print(f"Error generating question: {e}")
             return self._generate_template_question(
                 code, concepts, correct_answer, distractors
             )
