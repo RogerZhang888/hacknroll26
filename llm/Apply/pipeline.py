@@ -88,7 +88,7 @@ class QuestionPipeline:
     
     def generate_one_question(
         self,
-        chapter: int = 3,
+        chapter: int = 2,
         difficulty: str = "medium",
         max_retries: int = 3,
         verbose: bool = True
@@ -265,7 +265,7 @@ class QuestionPipeline:
     def generate_batch(
         self,
         num_questions: int = 10,
-        chapter: int = 3,
+        chapter: int = 2,
         difficulty: str = "medium",
         output_file: Optional[str] = None
     ) -> list:
@@ -343,7 +343,7 @@ def demo():
     
     # Generate one question
     question = pipeline.generate_one_question(
-        chapter=3,
+        chapter=2,
         difficulty="medium",
         verbose=True
     )
