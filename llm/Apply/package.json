@@ -7,6 +7,6 @@
     "test": "node test_interpreter.js"
   },
   "dependencies": {
-    "js-slang": "^1.0.0"
+    "js-slang": "^1.0.85"
   }
 }

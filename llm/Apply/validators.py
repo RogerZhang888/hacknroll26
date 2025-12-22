@@ -47,17 +47,39 @@ class CodeValidator:
                 return False, f"Loops not allowed in Chapter {chapter}"
             if re.search(r'\blet\s+\w+\s*=', code):
                 return False, f"Variable assignment (let) not allowed in Chapter {chapter}"
-            # Check for actual reassignment (not arrow functions)
-            # Pattern: const x = value; ... x = newvalue
-            # This is a simplified check - real reassignment needs more complex parsing
+            
+            # Check for actual reassignment (x = value where x was previously declared)
+            # This is tricky because we need to distinguish:
+            # - const x = ... (declaration - OK)
+            # - const f = x => ... (arrow function - OK)  
+            # - x = ... (reassignment - NOT OK in Chapter 1-2)
+            #
+            # Simple heuristic: Look for pattern "varname = value" that's NOT:
+            # 1. Preceded by const/let/var
+            # 2. Part of arrow function (=>) 
+            # 3. Part of comparison (==, ===, !=, !==, >=, <=)
+            
+            # For simplicity in Chapter 1-2, just check there's no standalone assignment
+            # Pattern: identifier = non-arrow-value (not preceded by const)
+            # We'll look for lines that have assignment but not declaration
             lines = code.split(';')
-            const_vars = re.findall(r'\bconst\s+(\w+)\s*=', code)
-            for var in const_vars:
-                # Check if variable is reassigned later (not in arrow function context)
-                reassignment_pattern = rf'(?<!const\s){var}\s*=[^=]'
-                if re.search(reassignment_pattern, code):
-                    # Make sure it's not part of arrow function (=>)
-                    if not re.search(rf'{var}\s*=\s*[^=]*=>', code):
+            for line in lines:
+                line = line.strip()
+                # Skip empty lines
+                if not line:
+                    continue
+                # Skip if it's a declaration
+                if line.startswith('const ') or line.startswith('let ') or line.startswith('var '):
+                    continue
+                # Skip if it's a function declaration
+                if line.startswith('function '):
+                    continue
+                # Check for assignment pattern (but not arrow function)
+                # Pattern: word = value (but not =>)
+                if re.search(r'\b\w+\s*=(?!=)', line) and '=>' not in line:
+                    # This might be a reassignment - double check it's not in a parameter
+                    # If line doesn't start with '(' and doesn't have 'const' anywhere, it's likely reassignment
+                    if 'const' not in line and not line.startswith('('):
                         return False, f"Reassignment not allowed in Chapter {chapter}"
         
         # Chapter 1-2: No streams

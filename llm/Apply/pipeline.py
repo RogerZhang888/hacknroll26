@@ -173,20 +173,28 @@ class QuestionPipeline:
                 
                 result = self.interpreter.run(code, chapter)
                 
-                if not result['success']:
+                # Check if execution was successful
+                if not result.success:
                     if verbose:
-                        print(f"  ✗ Runtime error: {result['error']}")
+                        print(f"  ✗ Runtime error:")
+                        print(f"    {result.error}")
                     continue
                 
-                ground_truth = {
-                    "output": result['value'],
-                    "pairs": result.get('pairCount', 0),
-                }
-                
+                # Display successful execution results
                 if verbose:
                     print(f"  ✓ Execution successful")
-                    print(f"    Output: {ground_truth['output']}")
-                    print(f"    Pairs created: {ground_truth['pairs']}")
+                    print(f"    Output: {result.display_value}")
+                    print(f"    Pairs created: {result.pair_count}")
+                    if result.output:
+                        print(f"    Display output:")
+                        for line in result.output:
+                            print(f"      {line}")
+                
+                # Create ground truth from result
+                ground_truth = {
+                    "output": result.display_value,
+                    "pairs": result.pair_count,
+                }
                 
                 # Step 6: Generate distractors
                 if verbose:
@@ -254,6 +262,8 @@ class QuestionPipeline:
             except Exception as e:
                 if verbose:
                     print(f"\n✗ Error during generation: {e}")
+                    import traceback
+                    traceback.print_exc()
                 continue
         
         # All attempts failed
