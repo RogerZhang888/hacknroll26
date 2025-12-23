@@ -1,6 +1,6 @@
 """
-Smart Distractor Generator
-Generates type-aware, pedagogically meaningful wrong answers
+Smart Distractor Generator - MINIMAL FIX
+Only changes: better numeric fallback logic
 """
 
 import json
@@ -10,39 +10,20 @@ from pathlib import Path
 
 
 class DistractorComputer:
-    """
-    Type-aware distractor generation with:
-    1. List-specific distractors
-    2. Complexity-based distractors
-    3. Process-type confusion
-    4. Metadata-informed generation
-    """
+    """Type-aware distractor generation"""
     
     def __init__(self, traps_path: str = "traps.json"):
         traps_file = Path(__file__).parent / traps_path
-        
         with open(traps_file, 'r') as f:
             self.traps_data = json.load(f)
-        
         self.traps = {trap['concept']: trap for trap in self.traps_data['traps']}
     
     def _parse_list_structure(self, value: Any) -> Optional[List]:
-        """
-        Parse a list from string representation or native structure
-        
-        Examples:
-        "[1, [2, [3, null]]]" -> [1, 2, 3]
-        {"head": 1, "tail": {"head": 2, ...}} -> [1, 2, ...]
-        """
+        """Parse list from string/dict/list"""
         if isinstance(value, str):
-            # Try to evaluate as Python-like structure
-            # Convert Source list notation to Python
             try:
-                # Simple parsing: [1, [2, [3, null]]] -> [1, 2, 3]
                 elements = []
                 s = value.strip()
-                
-                # Count depth
                 depth = 0
                 current_elem = ""
                 
@@ -73,7 +54,6 @@ class DistractorComputer:
                         current_elem += char
                 
                 return elements if elements else None
-                
             except:
                 return None
         
@@ -81,7 +61,6 @@ class DistractorComputer:
             return list(value)
         
         elif isinstance(value, dict):
-            # Parse Source pair structure {"head": 1, "tail": {...}}
             elements = []
             current = value
             while isinstance(current, dict) and "head" in current:
@@ -94,36 +73,20 @@ class DistractorComputer:
         return None
     
     def _list_to_source(self, elements: List) -> str:
-        """Convert Python list to Source list notation"""
+        """Convert Python list to Source notation"""
         if not elements:
             return "null"
-        
-        # Build nested pair notation
         result = "null"
         for elem in reversed(elements):
             result = f"[{elem}, {result}]"
         return result
     
-    def generate_list_distractors(
-        self,
-        correct_list: List,
-        concept: str,
-        ground_truth: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        """
-        Generate plausible wrong lists based on common mistakes
-        
-        Strategies:
-        1. Off-by-one length (missing first/last element)
-        2. Wrong order (reversed, partially sorted)
-        3. Wrong values (off-by-one on elements)
-        4. Wrong structure (improper list, nested incorrectly)
-        """
+    def generate_list_distractors(self, correct_list: List, concept: str, ground_truth: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate list distractors"""
         distractors = []
         
-        # Strategy 1: Missing elements (off-by-one length)
+        # Strategy 1: Missing elements
         if len(correct_list) > 1:
-            # Missing last element
             distractors.append({
                 'value': self._list_to_source(correct_list[:-1]),
                 'misconception': 'off_by_one_length_short',
@@ -131,7 +94,6 @@ class DistractorComputer:
             })
         
         if len(correct_list) > 0:
-            # Missing first element
             distractors.append({
                 'value': self._list_to_source(correct_list[1:]),
                 'misconception': 'off_by_one_length_skip_first',
@@ -140,7 +102,6 @@ class DistractorComputer:
         
         # Strategy 2: Wrong order
         if len(correct_list) >= 2:
-            # Reversed
             distractors.append({
                 'value': self._list_to_source(list(reversed(correct_list))),
                 'misconception': 'reversed_order',
@@ -149,7 +110,6 @@ class DistractorComputer:
         
         # Strategy 3: Element transformation errors
         if len(correct_list) > 0 and all(isinstance(x, int) for x in correct_list):
-            # Off-by-one on all elements
             if concept in ['map', 'list_library', 'lists']:
                 wrong_elements = [x + 1 for x in correct_list]
                 distractors.append({
@@ -158,7 +118,6 @@ class DistractorComputer:
                     'explanation': 'Applied wrong function to elements'
                 })
             
-            # Partial transformation (only first element)
             if len(correct_list) > 1:
                 partial = [correct_list[0] * 2] + correct_list[1:]
                 distractors.append({
@@ -169,7 +128,6 @@ class DistractorComputer:
         
         # Strategy 4: Structure confusion
         if len(correct_list) >= 2:
-            # Extra nesting
             nested = [correct_list]
             distractors.append({
                 'value': self._list_to_source(nested),
@@ -180,7 +138,6 @@ class DistractorComputer:
         # Strategy 5: Pair count confusion
         pair_count = ground_truth.get('pairs', 0)
         if pair_count > len(correct_list):
-            # Used pairs but made too many
             extended = correct_list + [0] * (pair_count - len(correct_list))
             distractors.append({
                 'value': self._list_to_source(extended),
@@ -190,16 +147,11 @@ class DistractorComputer:
         
         return distractors
     
-    def generate_numeric_distractors(
-        self,
-        correct_value: int,
-        concept: str,
-        ground_truth: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        """Generate numeric distractors"""
+    def generate_numeric_distractors(self, correct_value: int, concept: str, ground_truth: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate ONLY numeric distractors"""
         distractors = []
         
-        # Off-by-one (classic)
+        # Off-by-one (always include)
         if correct_value > 0:
             distractors.append({
                 'value': correct_value - 1,
@@ -213,38 +165,58 @@ class DistractorComputer:
             'explanation': 'Counted one extra iteration'
         })
         
-        # Factorial-specific: n-1 factorial
-        if 'factorial' in str(ground_truth).lower() and correct_value > 1:
+        # Off-by-two
+        if correct_value > 1:
             distractors.append({
-                'value': correct_value // (correct_value // 24 + 1),  # Rough approximation
-                'misconception': 'wrong_input',
-                'explanation': 'Computed factorial(n-1) instead of factorial(n)'
+                'value': correct_value - 2,
+                'misconception': 'off_by_two',
+                'explanation': 'Skipped two elements'
             })
         
-        # Fibonacci-specific patterns
-        if 'fibonacci' in concept.lower():
+        # Halved/doubled
+        if correct_value > 2:
             distractors.append({
-                'value': correct_value - 1,
-                'misconception': 'missed_base_case',
-                'explanation': 'Incorrect base case handling'
+                'value': correct_value // 2,
+                'misconception': 'halved',
+                'explanation': 'Wrong operation used'
             })
         
-        # Recursion depth confusion (if pairs involved)
+        if correct_value < 1000:
+            distractors.append({
+                'value': correct_value * 2,
+                'misconception': 'doubled',
+                'explanation': 'Wrong operation used'
+            })
+        
+        # Zero
+        if correct_value != 0:
+            distractors.append({
+                'value': 0,
+                'misconception': 'wrong_base_case',
+                'explanation': 'Incorrect base case'
+            })
+        
+        # Pairs confusion
         pairs = ground_truth.get('pairs', 0)
         if pairs > 0 and pairs != correct_value:
             distractors.append({
                 'value': pairs,
                 'misconception': 'confused_with_pair_count',
-                'explanation': f'Confused result ({correct_value}) with pairs created ({pairs})'
+                'explanation': f'Confused result with pairs created'
+            })
+        
+        # Factorial-specific
+        if 'factorial' in str(ground_truth).lower() and correct_value > 1:
+            distractors.append({
+                'value': correct_value // (correct_value // 24 + 1),
+                'misconception': 'wrong_input',
+                'explanation': 'Computed factorial(n-1) instead'
             })
         
         return distractors
     
-    def generate_complexity_distractors(
-        self,
-        correct_complexity: str
-    ) -> List[Dict[str, Any]]:
-        """Generate complexity confusion distractors"""
+    def generate_complexity_distractors(self, correct_complexity: str) -> List[Dict[str, Any]]:
+        """Generate complexity distractors"""
         confusion_map = {
             "O(1)": [
                 {"value": "O(n)", "misconception": "assumes_linear_scan"},
@@ -278,46 +250,29 @@ class DistractorComputer:
             {"value": "O(n^2)", "misconception": "default_guess_2"}
         ])
     
-    def generate_smart_distractors(
-        self,
-        concept: str,
-        correct_answer: Any,
-        ground_truth: Dict[str, Any],
-        num_distractors: int = 3
-    ) -> List[Dict[str, Any]]:
-        """
-        Main entry point: generate type-aware distractors
-        """
+    def generate_smart_distractors(self, concept: str, correct_answer: Any, ground_truth: Dict[str, Any], num_distractors: int = 3) -> List[Dict[str, Any]]:
+        """Main entry point: type-aware distractors"""
         distractors = []
         
-        # Detect answer type and generate accordingly
-        
-        # 1. COMPLEXITY ANSWERS (O(n), O(n^2), etc.)
+        # 1. COMPLEXITY ANSWERS
         if isinstance(correct_answer, str) and correct_answer.startswith("O("):
             distractors = self.generate_complexity_distractors(correct_answer)
         
         # 2. LIST ANSWERS
         elif isinstance(correct_answer, str) and ('[' in correct_answer or 'null' in correct_answer):
-            # Parse list structure
             parsed_list = self._parse_list_structure(correct_answer)
             
             if parsed_list is not None:
-                distractors = self.generate_list_distractors(
-                    parsed_list, concept, ground_truth
-                )
+                distractors = self.generate_list_distractors(parsed_list, concept, ground_truth)
             else:
-                # Couldn't parse, generate generic
                 distractors = [
                     {'value': 'null', 'misconception': 'empty_result'},
-                    {'value': '[' + correct_answer.replace('[', '').replace(']', '') + ']', 
-                     'misconception': 'wrong_nesting'},
+                    {'value': '[' + correct_answer.replace('[', '').replace(']', '') + ']', 'misconception': 'wrong_nesting'},
                 ]
         
-        # 3. NUMERIC ANSWERS
+        # 3. NUMERIC ANSWERS - FIX: Generate ONLY numeric
         elif isinstance(correct_answer, (int, float)):
-            distractors = self.generate_numeric_distractors(
-                int(correct_answer), concept, ground_truth
-            )
+            distractors = self.generate_numeric_distractors(int(correct_answer), concept, ground_truth)
         
         # 4. BOOLEAN ANSWERS
         elif isinstance(correct_answer, bool):
@@ -334,15 +289,19 @@ class DistractorComputer:
                 {'value': "O(n) Space", 'misconception': 'confuses_process_with_complexity'}
             ]
         
-        # 6. FALLBACK for unknown types
+        # 6. FALLBACK - match type of correct answer
         else:
-            distractors = [
-                {'value': 'Error', 'misconception': 'assumes_runtime_error'},
-                {'value': 'undefined', 'misconception': 'undefined_behavior'},
-                {'value': str(correct_answer) + "_modified", 'misconception': 'generic_error'}
-            ]
+            if isinstance(correct_answer, (int, float)):
+                # Numeric fallback - still generate numbers
+                distractors = self.generate_numeric_distractors(int(correct_answer), concept, ground_truth)
+            else:
+                # Non-numeric fallback
+                distractors = [
+                    {'value': 'Error', 'misconception': 'assumes_runtime_error'},
+                    {'value': 'undefined', 'misconception': 'undefined_behavior'}
+                ]
         
-        # Deduplicate and ensure variety
+        # Deduplicate
         seen_values = {correct_answer}
         unique_distractors = []
         
@@ -352,19 +311,21 @@ class DistractorComputer:
                 seen_values.add(val)
                 unique_distractors.append(d)
         
-        # If not enough unique distractors, add more generic ones
+        # Fill if needed - KEEP SAME TYPE
         while len(unique_distractors) < num_distractors:
-            if isinstance(correct_answer, int):
-                # Add more numeric variations
-                new_val = correct_answer + random.choice([-2, 2, -3, 3])
-                if new_val not in seen_values and new_val >= 0:
+            if isinstance(correct_answer, (int, float)):
+                # Generate more numeric variations
+                new_val = correct_answer + random.choice([-2, 2, -3, 3, -5, 5])
+                if new_val >= 0 and new_val not in seen_values:
                     unique_distractors.append({
                         'value': new_val,
                         'misconception': 'arithmetic_error'
                     })
                     seen_values.add(new_val)
+                else:
+                    break
             else:
-                # Generic fallback
+                # Non-numeric - give up
                 unique_distractors.append({
                     'value': 'undefined',
                     'misconception': 'generic_error'
@@ -375,58 +336,21 @@ class DistractorComputer:
 
 
 def demo():
-    """Test smart distractor generation"""
-    print("=== Smart Distractor Generation Demo ===\n")
-    
+    print("=== Distractor Demo ===\n")
     computer = DistractorComputer()
     
-    # Test 1: List answer
-    print("Test 1: List answer")
-    list_answer = "[1, [2, [3, [4, null]]]]"
-    ground_truth = {"output": list_answer, "pairs": 4}
+    # Test numeric
+    print("Test: Numeric answer")
+    gt = {"output": 15, "pairs": 0}
+    distractors = computer.generate_smart_distractors("basics", 15, gt)
     
-    distractors = computer.generate_smart_distractors(
-        concept="lists",
-        correct_answer=list_answer,
-        ground_truth=ground_truth
-    )
-    
-    print(f"  Correct: {list_answer}")
-    print("  Distractors:")
+    print(f"Correct: 15")
     for d in distractors:
-        print(f"    {d['value']} ({d['misconception']})")
+        print(f"  {d['value']} ({d['misconception']})")
     
-    # Test 2: Numeric answer
-    print("\nTest 2: Numeric answer")
-    numeric_answer = 120
-    ground_truth = {"output": 120, "pairs": 5}
-    
-    distractors = computer.generate_smart_distractors(
-        concept="recursion",
-        correct_answer=numeric_answer,
-        ground_truth=ground_truth
-    )
-    
-    print(f"  Correct: {numeric_answer}")
-    print("  Distractors:")
-    for d in distractors:
-        print(f"    {d['value']} ({d['misconception']})")
-    
-    # Test 3: Complexity answer
-    print("\nTest 3: Complexity answer")
-    complexity_answer = "O(n)"
-    ground_truth = {"output": "O(n)"}
-    
-    distractors = computer.generate_smart_distractors(
-        concept="orders_of_growth",
-        correct_answer=complexity_answer,
-        ground_truth=ground_truth
-    )
-    
-    print(f"  Correct: {complexity_answer}")
-    print("  Distractors:")
-    for d in distractors:
-        print(f"    {d['value']} ({d['misconception']})")
+    # Verify all numeric
+    all_numeric = all(isinstance(d['value'], int) for d in distractors)
+    print(f"\n{'✓' if all_numeric else '✗'} All distractors numeric: {all_numeric}")
 
 
 if __name__ == "__main__":

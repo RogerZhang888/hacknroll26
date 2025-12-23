@@ -1,9 +1,10 @@
 """
-Enhanced Code Generator with improved prompt engineering
-Addresses: temperature, few-shot examples, structured output, self-correction
+Enhanced Code Generator - Merged Version
+Original features + seed parameter for variety
 """
 
 import json
+import random
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from llm_client import LLMClient
@@ -11,15 +12,16 @@ from llm_client import LLMClient
 
 class CodeGenerator:
     """
-    Improved code generator with:
+    Enhanced code generator with:
     1. Lower temperature (0.2)
     2. Few-shot examples in prompts
     3. Structured JSON output
     4. Self-correction loop
     5. Concept-specific pattern examples
+    6. Seed parameter for variety (NEW)
     """
     
-    # Enhanced concept requirements with SPECIFIC patterns
+    # Original: Concept patterns with good/bad examples
     CONCEPT_PATTERNS = {
         "recursion_process": {
             "requirement": "Must have deferred operations (NOT tail-recursive)",
@@ -74,6 +76,54 @@ const xs = pair(1, pair(2, 3));
         }
     }
     
+    # NEW: Multiple fallback examples per concept for variety
+    FALLBACK_EXAMPLES = {
+        "recursion_process": {
+            1: [  # Chapter 1
+                "const factorial = n => n === 0 ? 1 : n * factorial(n - 1);\nfactorial(5);",
+                "const sum = n => n === 0 ? 0 : n + sum(n - 1);\nsum(10);",
+                "const power = (b, e) => e === 0 ? 1 : b * power(b, e - 1);\npower(2, 5);"
+            ],
+            2: [  # Chapter 2+
+                "const sum_list = lst => is_null(lst) ? 0 : head(lst) + sum_list(tail(lst));\nsum_list(list(1, 2, 3, 4, 5));",
+                "const product_list = lst => is_null(lst) ? 1 : head(lst) * product_list(tail(lst));\nproduct_list(list(1, 2, 3, 4));",
+                "const count_list = lst => is_null(lst) ? 0 : 1 + count_list(tail(lst));\ncount_list(list(5, 4, 3, 2, 1));"
+            ]
+        },
+        "iterative_process": {
+            1: [
+                "const factorial_iter = (n, acc) => n === 0 ? acc : factorial_iter(n - 1, n * acc);\nconst factorial = n => factorial_iter(n, 1);\nfactorial(5);",
+                "const sum_iter = (n, acc) => n === 0 ? acc : sum_iter(n - 1, n + acc);\nconst sum = n => sum_iter(n, 0);\nsum(10);"
+            ],
+            2: [
+                "const length_iter = (lst, acc) => is_null(lst) ? acc : length_iter(tail(lst), acc + 1);\nconst length = lst => length_iter(lst, 0);\nlength(list(1, 2, 3, 4, 5));",
+                "const sum_iter = (lst, acc) => is_null(lst) ? acc : sum_iter(tail(lst), acc + head(lst));\nconst sum = lst => sum_iter(lst, 0);\nsum(list(1, 2, 3, 4, 5));"
+            ]
+        },
+        "list_library": [
+            "const double_list = lst => map(x => x * 2, lst);\nconst evens = lst => filter(x => x % 2 === 0, lst);\nevens(double_list(list(1, 2, 3, 4, 5)));",
+            "const xs = list(1, 2, 3, 4, 5);\nconst ys = map(x => x * x, xs);\naccumulate((x, y) => x + y, 0, ys);",
+            "const xs = list(1, 2, 3, 4, 5, 6);\nconst odds = filter(x => x % 2 === 1, xs);\nlength(odds);"
+        ],
+        "lists": [
+            "const xs = list(1, 2, 3);\nhead(tail(xs));",
+            "const ys = pair(1, pair(2, null));\nlength(ys);",
+            "const zs = list(5, 4, 3, 2, 1);\nreverse(zs);"
+        ],
+        "basics": {
+            1: [
+                "const square = x => x * x;\nsquare(7);",
+                "const double = x => x * 2;\ndouble(21);",
+                "const add = (a, b) => a + b;\nadd(15, 27);"
+            ],
+            2: [
+                "const xs = list(1, 2, 3, 4, 5);\naccumulate((x, y) => x + y, 0, xs);",
+                "const xs = list(1, 2, 3);\nmap(x => x * 2, xs);",
+                "const xs = list(5, 4, 3, 2, 1);\nreverse(xs);"
+            ]
+        }
+    }
+    
     def __init__(
         self, 
         operational_rules_path: str = "operational_rules.json",
@@ -91,7 +141,7 @@ const xs = pair(1, pair(2, 3));
             llm_config = {}
         
         # Force lower temperature for code generation
-        llm_config['temperature'] = 0.7
+        llm_config['temperature'] = 0.2
         
         self.llm = LLMClient(llm_config)
         
@@ -103,7 +153,8 @@ const xs = pair(1, pair(2, 3));
         concepts: List[str],
         trap: Dict[str, Any],
         chapter: int,
-        previous_error: Optional[str] = None
+        previous_error: Optional[str] = None,
+        seed: Optional[int] = None  # NEW: for variety
     ) -> str:
         """
         Build enhanced prompt with:
@@ -111,7 +162,12 @@ const xs = pair(1, pair(2, 3));
         - Concept-specific patterns
         - Structured output format
         - Error correction context
+        - Seed-based variety (NEW)
         """
+        
+        # NEW: Use seed for example selection if provided
+        if seed is not None:
+            random.seed(seed)
         
         # Collect relevant examples
         examples_section = ""
@@ -171,6 +227,9 @@ CHAPTER 3 ALLOWED:
 Fix this specific issue in your new code.
 """
         
+        # NEW: Add variety instruction if seed provided
+        variety_note = f"\n\nVARIATION: Generate slightly different code (seed: {seed})" if seed else ""
+        
         # Structured output format
         prompt = f"""Generate valid Source code for CS1101S Chapter {chapter}.
 
@@ -188,8 +247,9 @@ CRITICAL SYNTAX RULES:
 3. In Chapter 1-2: arrow functions MUST be one-liner: x => x + 1
 4. Ternary for conditions: b ? 1 : 2 (NOT if-expression)
 5. Strings use double quotes: "text"
+6. Use null NOT list() for empty list
 
-TRAP STRATEGY: {trap.get('strategy', {}).get('instruction', '')}
+TRAP STRATEGY: {trap.get('strategy', {}).get('instruction', '')}{variety_note}
 
 OUTPUT FORMAT (respond with valid JSON):
 {{
@@ -212,17 +272,22 @@ Generate code that:
         concepts: List[str],
         trap: Dict[str, Any],
         chapter: int = 2,
-        max_self_corrections: int = 2
+        max_self_corrections: int = 2,
+        seed: Optional[int] = None  # NEW: for variety
     ) -> str:
         """
-        Generate code with self-correction loop
+        Generate code with self-correction loop + seed for variety
         """
         if not self.llm.is_available():
-            return self._generate_fallback_code(concepts, chapter)
+            return self._generate_fallback_code(concepts, chapter, seed)
         
         system_prompt = """You are an expert Source (JavaScript subset) code generator for CS1101S.
 You write syntactically perfect, pedagogically clear code that demonstrates specific programming concepts.
 Always respond with valid JSON containing 'code' and 'explanation' fields."""
+        
+        # NEW: Initialize seed for variety
+        if seed is not None:
+            random.seed(seed)
         
         previous_error = None
         
@@ -230,7 +295,8 @@ Always respond with valid JSON containing 'code' and 'explanation' fields."""
             try:
                 # Build prompt (include previous error if retrying)
                 prompt = self._build_enhanced_prompt(
-                    concepts, trap, chapter, previous_error
+                    concepts, trap, chapter, previous_error, 
+                    seed=(seed + attempt) if seed else None  # NEW: vary seed per attempt
                 )
                 
                 # Generate with LOW temperature
@@ -257,9 +323,13 @@ Always respond with valid JSON containing 'code' and 'explanation' fields."""
                     if not code:
                         raise ValueError("No code in response")
                     
-                    # Ensure ends with semicolon
+                    # Post-process
                     if not code.endswith(';'):
                         code += ';'
+                    
+                    # Auto-fix common issues
+                    if 'list()' in code:
+                        code = code.replace('list()', 'null')
                     
                     return code
                     
@@ -276,6 +346,11 @@ Always respond with valid JSON containing 'code' and 'explanation' fields."""
                             code = code.strip()
                             if not code.endswith(';'):
                                 code += ';'
+                            
+                            # Auto-fix
+                            if 'list()' in code:
+                                code = code.replace('list()', 'null')
+                            
                             return code
                     
                     previous_error = f"JSON parsing failed: {e}. Response was: {response[:200]}"
@@ -289,44 +364,38 @@ Always respond with valid JSON containing 'code' and 'explanation' fields."""
         
         # All attempts failed
         print("  All self-correction attempts failed, using fallback")
-        return self._generate_fallback_code(concepts, chapter)
+        return self._generate_fallback_code(concepts, chapter, seed)
     
-    def _generate_fallback_code(self, concepts: List[str], chapter: int) -> str:
-        """High-quality fallback templates"""
+    def _generate_fallback_code(
+        self, 
+        concepts: List[str], 
+        chapter: int,
+        seed: Optional[int] = None  # NEW: for variety
+    ) -> str:
+        """High-quality fallback templates with variety"""
         
-        # Concept-specific fallbacks
-        if "recursion_process" in concepts or "recursion" in concepts:
-            if chapter == 1:
-                return "const factorial = n => n === 0 ? 1 : n * factorial(n - 1);\nfactorial(5);"
-            else:  # Chapter 2+
-                return """const sum_list = lst => is_null(lst) ? 0 : head(lst) + sum_list(tail(lst));
-sum_list(list(1, 2, 3, 4, 5));"""
+        # NEW: Use seed for random selection
+        if seed is not None:
+            random.seed(seed)
         
-        elif "iterative_process" in concepts:
-            if chapter == 1:
-                return """const factorial_iter = (n, acc) => n === 0 ? acc : factorial_iter(n - 1, n * acc);
-const factorial = n => factorial_iter(n, 1);
-factorial(5);"""
-            else:
-                return """const length_iter = (lst, acc) => is_null(lst) ? acc : length_iter(tail(lst), acc + 1);
-const length = lst => length_iter(lst, 0);
-length(list(1, 2, 3, 4, 5));"""
+        # Try to find examples for concept
+        for concept in concepts:
+            if concept in self.FALLBACK_EXAMPLES:
+                examples = self.FALLBACK_EXAMPLES[concept]
+                
+                # Check if chapter-specific
+                if isinstance(examples, dict):
+                    chapter_key = chapter if chapter in examples else max(k for k in examples.keys() if k <= chapter)
+                    examples = examples[chapter_key]
+                
+                # Pick random example
+                return random.choice(examples)
         
-        elif "list_library" in concepts or "lists" in concepts:
-            return """const double_list = lst => map(x => x * 2, lst);
-const evens = lst => filter(x => x % 2 === 0, lst);
-evens(double_list(list(1, 2, 3, 4, 5)));"""
-        
-        elif "orders_of_growth" in concepts:
-            return """const fibonacci = n => n <= 1 ? n : fibonacci(n - 1) + fibonacci(n - 2);
-fibonacci(7);"""
-        
+        # Generic fallback
+        if chapter == 1:
+            return "const square = x => x * x;\nsquare(7);"
         else:
-            # Generic fallback
-            if chapter == 1:
-                return "const square = x => x * x;\nsquare(7);"
-            else:
-                return "const xs = list(1, 2, 3);\naccumulate((x, y) => x + y, 0, xs);"
+            return "const xs = list(1, 2, 3);\naccumulate((x, y) => x + y, 0, xs);"
 
 
 def demo():
@@ -344,15 +413,13 @@ def demo():
     concepts = ["recursion_process"]
     chapter = 1
     
-    print(f"Generating code for: {concepts}")
-    print(f"Chapter: {chapter}\n")
-    
-    code = generator.generate_code(concepts, trap, chapter)
-    
-    print("Generated code:")
-    print("=" * 60)
-    print(code)
-    print("=" * 60)
+    # Generate 3 versions with different seeds
+    for i in range(3):
+        print(f"\nVersion {i+1} (seed={i*1000}):")
+        code = generator.generate_code(concepts, trap, chapter, seed=i*1000)
+        print("=" * 60)
+        print(code)
+        print("=" * 60)
 
 
 if __name__ == "__main__":
