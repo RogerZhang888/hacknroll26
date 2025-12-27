@@ -9,7 +9,6 @@ export default async function GetCodeQuestion(id?: number) {
         const { data, error} = await query.eq("id", id).single();
         if (error) {
             console.error(error);
-            return <div>Question with id {id} not found.</div>
         }
         return data;
     } else {
@@ -19,11 +18,7 @@ export default async function GetCodeQuestion(id?: number) {
             .single();
         if (error) {
             console.error(error);
-            return <div>Error loading random question.</div>
         }
         return data;
     }
 }
-
-
-
